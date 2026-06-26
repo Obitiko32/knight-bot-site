@@ -7,8 +7,11 @@ async function loadBotInfo() {
         const response = await fetch('/api/bot-info');
         if (response.ok) {
             const data = await response.json();
-            document.querySelector('.hero-content h1').innerHTML = 
-                `Управляй сервером <br>с <span class="highlight">${data.username || 'Knight Bot'}</span>`;
+            const heroTitle = document.querySelector('.hero-content h1');
+            if (heroTitle) {
+                heroTitle.innerHTML = 
+                    `Управляй сервером <br>с <span class="highlight">${data.username || 'Knight Bot'}</span>`;
+            }
         }
     } catch (error) {
         console.error('Ошибка загрузки бота:', error);
@@ -19,33 +22,74 @@ async function loadInviteUrl() {
     try {
         const response = await fetch('/api/invite-url');
         const data = await response.json();
-        document.getElementById('inviteBtn').href = data.url;
+        const inviteBtn = document.getElementById('inviteBtn');
+        if (inviteBtn) inviteBtn.href = data.url;
+        const heroInvite = document.getElementById('heroInviteBtn');
+        if (heroInvite) heroInvite.href = data.url;
     } catch (error) {
         console.error('Ошибка загрузки ссылки:', error);
     }
 }
 
-// Проверка авторизации (для кнопки входа)
+// ===== ПРОВЕРКА АВТОРИЗАЦИИ (исправлено) =====
 async function checkAuth() {
     try {
-        const response = await fetch('/api/me');
+        const response = await fetch('/api/me', {
+            credentials: 'include'
+        });
+        
         if (response.ok) {
             const user = await response.json();
             const loginBtn = document.getElementById('loginBtn');
             if (loginBtn) {
                 loginBtn.innerHTML = `<i class="fas fa-user"></i> ${user.username}`;
                 loginBtn.href = '/dashboard';
+                loginBtn.classList.remove('btn-discord');
+                loginBtn.classList.add('btn-profile');
             }
+            return true;
+        } else {
+            // Не авторизован — показываем кнопку "Войти"
+            const loginBtn = document.getElementById('loginBtn');
+            if (loginBtn) {
+                loginBtn.innerHTML = `<i class="fab fa-discord"></i> Войти`;
+                loginBtn.href = '/auth/discord';
+                loginBtn.classList.remove('btn-profile');
+                loginBtn.classList.add('btn-discord');
+            }
+            return false;
         }
     } catch (error) {
-        // Не авторизован — оставляем кнопку "Войти"
+        console.error('Ошибка проверки авторизации:', error);
+        return false;
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadBotInfo();
-    loadInviteUrl();
-    checkAuth();
+// ===== ОБРАБОТЧИК КЛИКА ПО ПРОФИЛЮ =====
+// Если пользователь уже авторизован — переход на панель
+// Если нет — переход на вход через Discord
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadBotInfo();
+    await loadInviteUrl();
+    await checkAuth();
+    
+    // Обработчик для кнопки профиля
+    const loginBtn = document.getElementById('loginBtn');
+    if (loginBtn) {
+        loginBtn.addEventListener('click', async (e) => {
+            // Проверяем, авторизован ли пользователь
+            const response = await fetch('/api/me', { credentials: 'include' });
+            if (response.ok) {
+                // Если авторизован — идём в панель
+                window.location.href = '/dashboard';
+            } else {
+                // Если нет — идём на вход
+                window.location.href = '/auth/discord';
+            }
+            e.preventDefault();
+        });
+    }
 });
 
 // ============================================
@@ -56,37 +100,50 @@ let selectedGuildId = null;
 
 async function loadDashboard() {
     try {
-        const meResponse = await fetch('/api/me');
+        const meResponse = await fetch('/api/me', {
+            credentials: 'include'
+        });
+        
         if (!meResponse.ok) {
+            console.error('❌ Не авторизован, перенаправление на главную');
             window.location.href = '/';
             return;
         }
         
         const user = await meResponse.json();
-        document.getElementById('userName').textContent = user.username;
-        document.getElementById('userAvatar').src = user.avatar 
-            ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` 
-            : 'https://cdn.discordapp.com/embed/avatars/0.png';
+        const userNameEl = document.getElementById('userName');
+        const userAvatarEl = document.getElementById('userAvatar');
+        
+        if (userNameEl) userNameEl.textContent = user.username;
+        if (userAvatarEl) {
+            userAvatarEl.src = user.avatar 
+                ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` 
+                : 'https://cdn.discordapp.com/embed/avatars/0.png';
+        }
         
         await loadGuilds();
         
     } catch (error) {
         console.error('Ошибка загрузки панели:', error);
+        window.location.href = '/';
     }
 }
 
 async function loadGuilds() {
     try {
-        const response = await fetch('/api/my-guilds');
+        const response = await fetch('/api/my-guilds', {
+            credentials: 'include'
+        });
         const data = await response.json();
         
         const container = document.getElementById('guildsList');
+        if (!container) return;
         
         if (!data.guilds || data.guilds.length === 0) {
             container.innerHTML = `
                 <div style="text-align: center; padding: 20px 0;">
                     <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">
-                        🤖 Бот не добавлен<br>ни на один сервер
+                        🛡️ Бот не добавлен<br>ни на один сервер
                     </p>
                     <a href="/api/invite-url" class="btn-primary" style="display: inline-block; padding: 8px 20px; border-radius: 10px; text-decoration: none; color: white; font-size: 13px;">
                         <i class="fas fa-plus"></i> Пригласить бота
@@ -110,39 +167,9 @@ async function loadGuilds() {
         
     } catch (error) {
         console.error('Ошибка загрузки серверов:', error);
-        document.getElementById('guildsList').innerHTML = `
-            <p style="color: var(--danger); font-size: 14px;">❌ Ошибка загрузки</p>
-        `;
-    }
-}
-
-// ============================================
-// ПАНЕЛЬ УПРАВЛЕНИЯ (dashboard.html)
-// ============================================
-
-async function loadDashboard() {
-    try {
-        const meResponse = await fetch('/api/me', {
-            credentials: 'include' // ОБЯЗАТЕЛЬНО для сессий
-        });
-        
-        if (!meResponse.ok) {
-            console.error('❌ Не авторизован, перенаправление на главную');
-            window.location.href = '/';
-            return;
+        if (container) {
+            container.innerHTML = `<p style="color: var(--danger); font-size: 14px;">❌ Ошибка загрузки</p>`;
         }
-        
-        const user = await meResponse.json();
-        document.getElementById('userName').textContent = user.username;
-        document.getElementById('userAvatar').src = user.avatar 
-            ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` 
-            : 'https://cdn.discordapp.com/embed/avatars/0.png';
-        
-        await loadGuilds();
-        
-    } catch (error) {
-        console.error('Ошибка загрузки панели:', error);
-        window.location.href = '/';
     }
 }
 
@@ -157,15 +184,19 @@ async function selectGuild(guildId) {
     });
     
     try {
-        const response = await fetch(`/api/guilds/${guildId}`);
+        const response = await fetch(`/api/guilds/${guildId}`, {
+            credentials: 'include'
+        });
         if (!response.ok) throw new Error('Ошибка загрузки');
         
         const data = await response.json();
         
         const main = document.getElementById('guildDashboard');
+        if (!main) return;
+        
         main.innerHTML = `
             <div class="card">
-                <h3><i class="fas fa-server"></i> ${data.guild.name}</h3>
+                <h3><i class="fas fa-crown"></i> ${data.guild.name}</h3>
                 <div class="stat-grid">
                     <div class="stat-item">
                         <div class="number">${data.members.length}</div>
@@ -198,15 +229,19 @@ async function selectGuild(guildId) {
         
     } catch (error) {
         console.error('Ошибка загрузки сервера:', error);
-        document.getElementById('guildDashboard').innerHTML = `
-            <div class="card">
-                <h3><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Ошибка</h3>
-                <p style="color: var(--danger);">Не удалось загрузить данные сервера</p>
-            </div>
-        `;
+        const main = document.getElementById('guildDashboard');
+        if (main) {
+            main.innerHTML = `
+                <div class="card">
+                    <h3><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Ошибка</h3>
+                    <p style="color: var(--danger);">Не удалось загрузить данные сервера</p>
+                </div>
+            `;
+        }
     }
 }
 
+// Запуск панели
 if (document.getElementById('guildsList')) {
     document.addEventListener('DOMContentLoaded', loadDashboard);
 }
