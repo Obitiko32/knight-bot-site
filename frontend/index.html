@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Georgia:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -17,16 +17,13 @@
                 <span>Knight Bot</span>
             </a>
             <nav>
-                <a href="/" class="active">Главная</a>
-                <a href="/servers">Сервера</a>
-                <a href="/commands">Команды</a>
-                <a href="/leaderboard">Рейтинг</a>
+                <!-- Кнопки Сервера, Команды, Рейтинг УБРАНЫ -->
                 <a href="#" class="btn-primary" id="inviteBtn">
                     <i class="fas fa-plus"></i> Добавить бота
                 </a>
                 <div class="profile-container" id="profileContainer">
                     <div class="profile-btn" id="profileBtn">
-                        <img class="avatar" id="profileAvatar" src="" alt="Avatar">
+                        <img class="avatar" id="profileAvatar" src="" alt="Avatar" style="display: none;">
                         <span class="name" id="profileName">Войти</span>
                         <i class="fas fa-chevron-down chevron"></i>
                     </div>
@@ -42,10 +39,6 @@
                             <i class="fas fa-moon"></i> Тема
                             <span class="badge" id="themeBadge">Светлая</span>
                         </button>
-                        <button class="dropdown-item" id="dropdownLanguage">
-                            <i class="fas fa-globe"></i> Язык
-                            <span class="badge">Русский</span>
-                        </button>
                         <div class="dropdown-divider"></div>
                         <button class="dropdown-item danger" id="dropdownLogout">
                             <i class="fas fa-sign-out-alt"></i> Выйти
@@ -55,48 +48,50 @@
             </nav>
         </header>
 
-        <section class="hero" style="padding: 60px 0; display: flex; align-items: center; gap: 40px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 280px;">
-                <span style="display: inline-block; padding: 6px 20px; background: rgba(200,157,92,0.12); color: var(--accent-dark); border-radius: 20px; font-size: 13px; font-weight: 600; letter-spacing: 1px; margin-bottom: 16px; border: 1px solid rgba(200,157,92,0.2); text-transform: uppercase;">⚔️ Рыцарь Discord</span>
-                <h1 style="font-size: 48px; line-height: 1.1; margin-bottom: 16px; font-weight: 700; font-family: 'Georgia', serif;">Управляй сервером <br>с <span style="background: linear-gradient(135deg, var(--gold), var(--gold-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Knight Bot</span></h1>
-                <p style="font-size: 18px; color: var(--text-secondary); margin-bottom: 28px; max-width: 500px; line-height: 1.7; font-family: 'Georgia', serif;">Автоматическая выдача ролей, защита от спама, статистика и гибкие настройки — всё под контролем рыцаря.</p>
-                <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-                    <a href="/auth/discord" class="btn-discord-large" id="heroLoginBtn" style="display: inline-flex; align-items: center; gap: 12px; padding: 16px 36px; background: var(--discord); color: white; border-radius: 12px; text-decoration: none; font-weight: 600; transition: all 0.3s; font-size: 16px; box-shadow: 0 4px 20px rgba(88,101,242,0.3);">
-                        <i class="fab fa-discord"></i> Войти через Discord
+        <section class="hero">
+            <div class="hero-content">
+                <span class="badge">⚔️ Рыцарь Discord</span>
+                <h1>Управляй сервером <br>с <span class="highlight">Knight Bot</span></h1>
+                <p>Автоматическая выдача ролей, защита от спама, статистика и гибкие настройки — всё под контролем рыцаря.</p>
+                <div class="hero-buttons">
+                    <a href="#" class="btn-primary btn-large" id="heroInviteBtn">
+                        <i class="fas fa-plus"></i> Добавить бота
                     </a>
-                    <a href="#features" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 10px; padding: 16px 28px; background: var(--bg-card); color: var(--text-primary); border-radius: 12px; text-decoration: none; font-weight: 600; border: 2px solid var(--border); transition: all 0.3s;">
-                        <i class="fas fa-chevron-down"></i> Узнать больше
+                    <a href="#features" class="btn-secondary btn-large">
+                        <i class="fas fa-chevron-down"></i> Возможности
                     </a>
                 </div>
             </div>
-            <div style="flex: 1; min-width: 200px; text-align: center;">
-                <i class="fas fa-helmet-battle" style="font-size: 160px; filter: drop-shadow(0 0 60px rgba(200,157,92,0.3)); animation: knightFloat 4s ease-in-out infinite; line-height: 1; color: var(--gold);"></i>
+            <div class="hero-image">
+                <div class="shield-icon">
+                    <i class="fas fa-helmet-battle"></i>
+                </div>
             </div>
         </section>
 
-        <section id="features" style="padding: 40px 0 60px;">
-            <h2 style="text-align: center; font-size: 36px; font-weight: 700; margin-bottom: 8px; font-family: 'Georgia', serif;">Рыцарские возможности</h2>
-            <p style="text-align: center; color: var(--text-secondary); font-size: 16px; margin-bottom: 40px; font-family: 'Georgia', serif;">Всё, что нужно для управления королевством</p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
-                <div style="background: var(--bg-card); padding: 28px 24px; border-radius: var(--radius); text-align: center; border: 1px solid var(--border); transition: all 0.3s; box-shadow: var(--shadow);">
-                    <i class="fas fa-crown" style="font-size: 40px; color: var(--gold); margin-bottom: 14px; display: block;"></i>
-                    <h3 style="font-size: 18px; margin-bottom: 8px; font-weight: 600;">Роли за активность</h3>
-                    <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; font-family: 'Georgia', serif;">Автоматическая выдача ролей за количество сообщений. Настраиваемые пороги.</p>
+        <section id="features" class="features">
+            <h2>Рыцарские возможности</h2>
+            <p class="subtitle">Всё, что нужно для управления королевством</p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-crown"></i></div>
+                    <h3>Роли за активность</h3>
+                    <p>Автоматическая выдача ролей за количество сообщений. Настраиваемые пороги.</p>
                 </div>
-                <div style="background: var(--bg-card); padding: 28px 24px; border-radius: var(--radius); text-align: center; border: 1px solid var(--border); transition: all 0.3s; box-shadow: var(--shadow);">
-                    <i class="fas fa-shield-halved" style="font-size: 40px; color: var(--gold); margin-bottom: 14px; display: block;"></i>
-                    <h3 style="font-size: 18px; margin-bottom: 8px; font-weight: 600;">Антиспам</h3>
-                    <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; font-family: 'Georgia', serif;">Защита от спама с автоматическими мутами. Гибкие настройки.</p>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-shield-halved"></i></div>
+                    <h3>Антиспам</h3>
+                    <p>Защита от спама с автоматическими мутами. Гибкие настройки.</p>
                 </div>
-                <div style="background: var(--bg-card); padding: 28px 24px; border-radius: var(--radius); text-align: center; border: 1px solid var(--border); transition: all 0.3s; box-shadow: var(--shadow);">
-                    <i class="fas fa-chart-simple" style="font-size: 40px; color: var(--gold); margin-bottom: 14px; display: block;"></i>
-                    <h3 style="font-size: 18px; margin-bottom: 8px; font-weight: 600;">Статистика</h3>
-                    <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; font-family: 'Georgia', serif;">Подсчёт сообщений, топ пользователей и прогресс до следующей роли.</p>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-chart-simple"></i></div>
+                    <h3>Статистика</h3>
+                    <p>Подсчёт сообщений, топ пользователей и прогресс до следующей роли.</p>
                 </div>
-                <div style="background: var(--bg-card); padding: 28px 24px; border-radius: var(--radius); text-align: center; border: 1px solid var(--border); transition: all 0.3s; box-shadow: var(--shadow);">
-                    <i class="fas fa-sliders" style="font-size: 40px; color: var(--gold); margin-bottom: 14px; display: block;"></i>
-                    <h3 style="font-size: 18px; margin-bottom: 8px; font-weight: 600;">Гибкие настройки</h3>
-                    <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; font-family: 'Georgia', serif;">Управляй командами, порогами ролей и настройками антиспама.</p>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-sliders"></i></div>
+                    <h3>Гибкие настройки</h3>
+                    <p>Управляй командами, порогами ролей и настройками антиспама.</p>
                 </div>
             </div>
         </section>
