@@ -130,27 +130,53 @@ app.get('/api/guilds', async (req, res) => {
 });
 
 // ============================================
-// НОВЫЕ API ДЛЯ СЕРВЕРОВ (ДОБАВЛЕНЫ!)
+// ПОЛУЧЕНИЕ СЕРВЕРОВ ПОЛЬЗОВАТЕЛЯ
 // ============================================
 
-// Все сервера пользователя (из Discord)
 app.get('/api/user-guilds', isAuthenticated, (req, res) => {
-    const guilds = req.user.guilds || [];
-    res.json(guilds);
+    try {
+        const guilds = req.user.guilds || [];
+        const adminGuilds = guilds.filter(g => (g.permissions & 0x8) === 0x8);
+        res.json(adminGuilds);
+    } catch (error) {
+        console.error('Ошибка /api/user-guilds:', error);
+        res.json([]);
+    }
 });
 
-// Сервера, где есть бот
+// ============================================
+// ПОЛУЧЕНИЕ СЕРВЕРОВ БОТА (С ТАЙМАУТОМ)
+// ============================================
+
 app.get('/api/bot-guilds', isAuthenticated, async (req, res) => {
     try {
-        if (BOT_TOKEN) {
-            const response = await axios.get('https://discord.com/api/v10/users/@me/guilds', {
-                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
-            });
-            res.json(response.data);
-        } else {
-            res.json([]);
+        if (!BOT_TOKEN) {
+            console.log('⚠️ BOT_TOKEN не найден');
+            return res.json([]);
         }
+        
+        console.log('🔍 Запрос к Discord API для получения серверов бота...');
+        
+        // Таймаут для запроса к Discord
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await axios.get('https://discord.com/api/v10/users/@me/guilds', {
+            headers: {
+                'Authorization': `Bot ${BOT_TOKEN}`
+            },
+            timeout: 10000
+        });
+        clearTimeout(timeout);
+        
+        console.log(`✅ Бот на ${response.data.length} серверах`);
+        res.json(response.data);
     } catch (error) {
+        console.error('❌ Ошибка получения серверов бота:', error.message);
+        if (error.response) {
+            console.error('Статус:', error.response.status);
+            console.error('Данные:', error.response.data);
+        }
         res.json([]);
     }
 });

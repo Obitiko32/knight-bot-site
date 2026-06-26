@@ -398,7 +398,7 @@ function formatNumber(num) {
 }
 
 // ============================================
-// СТРАНИЦА СЕРВЕРОВ (ИСПРАВЛЕНА)
+// СТРАНИЦА СЕРВЕРОВ (С ТАЙМАУТОМ)
 // ============================================
 
 async function loadServers() {
@@ -413,19 +413,29 @@ async function loadServers() {
     `;
     
     try {
-        // Проверяем авторизацию
+        // Проверяем авторизацию с таймаутом
         let user = null;
         let attempts = 0;
-        const maxAttempts = 5;
+        const maxAttempts = 3;
         
         while (attempts < maxAttempts && !user) {
             try {
-                const response = await fetch('/api/me', { credentials: 'include' });
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch('/api/me', { 
+                    credentials: 'include',
+                    signal: controller.signal
+                });
+                clearTimeout(timeout);
+                
                 if (response.ok) {
                     user = await response.json();
                     break;
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.log(`⚠️ Попытка ${attempts + 1} не удалась`);
+            }
             attempts++;
             if (attempts < maxAttempts) {
                 await new Promise(resolve => setTimeout(resolve, 500));
@@ -437,19 +447,45 @@ async function loadServers() {
             return;
         }
         
-        // Получаем ВСЕ сервера пользователя (из Discord) с правами
-        const userGuildsResponse = await fetch('/api/user-guilds', { credentials: 'include' });
-        const userGuilds = await userGuildsResponse.json();
-        
-        // Получаем сервера, где есть бот
-        const botGuildsResponse = await fetch('/api/bot-guilds', { credentials: 'include' });
-        let botGuilds = [];
+        // Получаем сервера пользователя с таймаутом
+        let userGuilds = [];
         let botGuildIds = new Set();
         
-        if (botGuildsResponse.ok) {
-            botGuilds = await botGuildsResponse.json();
-            botGuildIds = new Set(botGuilds.map(g => g.id));
-            console.log('🔍 Бот на серверах:', botGuildIds);
+        try {
+            const controller1 = new AbortController();
+            const timeout1 = setTimeout(() => controller1.abort(), 8000);
+            
+            const userGuildsResponse = await fetch('/api/user-guilds', { 
+                credentials: 'include',
+                signal: controller1.signal
+            });
+            clearTimeout(timeout1);
+            
+            if (userGuildsResponse.ok) {
+                userGuilds = await userGuildsResponse.json();
+            }
+        } catch (e) {
+            console.error('Ошибка загрузки серверов пользователя:', e);
+        }
+        
+        // Получаем сервера бота с таймаутом
+        try {
+            const controller2 = new AbortController();
+            const timeout2 = setTimeout(() => controller2.abort(), 8000);
+            
+            const botGuildsResponse = await fetch('/api/bot-guilds', { 
+                credentials: 'include',
+                signal: controller2.signal
+            });
+            clearTimeout(timeout2);
+            
+            if (botGuildsResponse.ok) {
+                const botGuilds = await botGuildsResponse.json();
+                botGuildIds = new Set(botGuilds.map(g => g.id));
+                console.log('🔍 Бот на серверах:', botGuildIds);
+            }
+        } catch (e) {
+            console.error('Ошибка загрузки серверов бота:', e);
         }
         
         // Фильтруем сервера: только где есть права администратора (0x8)
@@ -461,6 +497,9 @@ async function loadServers() {
                     <i class="fas fa-shield-halved"></i>
                     <h3>Нет серверов с правами</h3>
                     <p>У вас нет прав администратора ни на одном сервере</p>
+                    <button class="btn-primary" style="margin-top: 16px;" onclick="location.reload()">
+                        <i class="fas fa-sync"></i> Обновить
+                    </button>
                 </div>
             `;
             return;
@@ -468,12 +507,8 @@ async function loadServers() {
         
         // Отображаем сервера
         container.innerHTML = adminGuilds.map(guild => {
-            // Проверяем, есть ли бот на этом сервере
             const hasBot = botGuildIds.has(guild.id);
             const memberCount = guild.approximate_member_count || 0;
-            
-            // Для отладки
-            console.log(`🟢 ${guild.name}: hasBot = ${hasBot}, ID = ${guild.id}`);
             
             return `
                 <div class="server-card">
@@ -507,12 +542,21 @@ async function loadServers() {
             <div class="empty-state" style="grid-column: 1/-1;">
                 <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
                 <h3>Ошибка загрузки</h3>
-                <p>${error.message}</p>
+                <p>${error.message || 'Неизвестная ошибка'}</p>
                 <button class="btn-primary" style="margin-top: 16px;" onclick="location.reload()">
                     <i class="fas fa-sync"></i> Попробовать снова
                 </button>
             </div>
         `;
+    }
+}
+
+async function inviteToServer(guildId) {
+    try {
+        const data = await apiFetch('/api/invite-url');
+        window.open(data.url, '_blank');
+    } catch (error) {
+        showToast('Ошибка получения ссылки', 'error');
     }
 }
 
