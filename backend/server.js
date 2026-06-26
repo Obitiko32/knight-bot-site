@@ -229,16 +229,51 @@ app.get('/api/guilds/:guildId', isAuthenticated, async (req, res) => {
 // ============================================
 
 const frontendPath = path.join(__dirname, '..', 'frontend');
+
+// Раздаём статику
 app.use(express.static(frontendPath));
 
+// Главная страница
 app.get('/', (req, res) => {
-    logSession(req, 'Главная страница');
     res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-app.get('/dashboard', isAuthenticated, (req, res) => {
-    logSession(req, 'Панель управления');
+// Панель управления (если есть)
+app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(frontendPath, 'dashboard.html'));
+});
+
+// ===== ДОБАВЬ ЭТИ МАРШРУТЫ =====
+// Сервера
+app.get('/servers', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'servers.html'));
+});
+
+// Команды
+app.get('/commands', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'commands.html'));
+});
+
+// Рейтинг
+app.get('/leaderboard', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'leaderboard.html'));
+});
+
+// Модерация
+app.get('/moderation', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'moderation.html'));
+});
+
+// Настройки ролей
+app.get('/roles-settings', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'roles-settings.html'));
+});
+
+// ============================================
+
+// Если ничего не найдено — отдаём index.html (для SPA)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 // ============================================
