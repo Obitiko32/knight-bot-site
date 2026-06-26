@@ -4,6 +4,7 @@
 
 let currentUser = null;
 let currentTheme = localStorage.getItem('knight-theme') || 'light';
+let totalCommandsExecuted = 0;
 
 // ============================================
 // ТЕМА
@@ -82,7 +83,7 @@ async function apiFetch(url, options = {}) {
 }
 
 // ============================================
-// ПРОФИЛЬ И ВХОД
+// ПРОФИЛЬ
 // ============================================
 
 async function loadProfile() {
@@ -132,6 +133,8 @@ async function loadProfile() {
                 name.textContent = 'Войти';
                 name.style.display = 'inline';
             }
+            if (dropdownName) dropdownName.textContent = 'Гость';
+            if (dropdownId) dropdownId.textContent = 'Не авторизован';
             
             // Кнопка "Добавить бота" в центре
             const heroBtn = document.getElementById('heroInviteBtn');
@@ -175,14 +178,18 @@ async function loadProfile() {
 }
 
 // ============================================
-// КНОПКА ВХОДА (РАБОТАЕТ!)
+// КНОПКА ВХОДА (ИСПРАВЛЕНО!)
 // ============================================
 
 function setupLoginButton() {
     const profileBtn = document.getElementById('profileBtn');
     if (!profileBtn) return;
     
-    profileBtn.addEventListener('click', async (e) => {
+    // Убираем все старые обработчики
+    const newBtn = profileBtn.cloneNode(true);
+    profileBtn.parentNode.replaceChild(newBtn, profileBtn);
+    
+    newBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
         
         // Проверяем, авторизован ли пользователь
@@ -193,16 +200,33 @@ function setupLoginButton() {
                 const dropdown = document.getElementById('profileDropdown');
                 if (dropdown) {
                     dropdown.classList.toggle('open');
-                    profileBtn.classList.toggle('active');
+                    newBtn.classList.toggle('active');
                 }
             } else {
                 // НЕ авторизован — отправляем на вход
                 window.location.href = '/auth/discord';
             }
         } catch (error) {
+            // Если ошибка — всё равно отправляем на вход
             window.location.href = '/auth/discord';
         }
     });
+    
+    // Обновляем ссылку на кнопку для других функций
+    window.profileBtnRef = newBtn;
+}
+
+// ============================================
+// НАСТРОЙКА ВЫХОДА
+// ============================================
+
+function setupLogout() {
+    const logoutBtn = document.getElementById('dropdownLogout');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            window.location.href = '/auth/logout';
+        });
+    }
 }
 
 // ============================================
@@ -210,9 +234,10 @@ function setupLoginButton() {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Применяем тему
     applyTheme(currentTheme);
     
-    // Настраиваем кнопку темы
+    // Настраиваем кнопку переключения темы
     const themeBtn = document.getElementById('dropdownTheme');
     if (themeBtn) {
         themeBtn.addEventListener('click', toggleTheme);
@@ -221,7 +246,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Настраиваем выход
     setupLogout();
     
-    // Настраиваем кнопку входа
+    // Настраиваем кнопку входа (исправлено)
     setupLoginButton();
     
     // Настраиваем меню (закрытие при клике вне)
@@ -263,44 +288,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Загружаем профиль
     await loadProfile();
     
-    // Загружаем статистику для баннера
+    // Загружаем статистику
     loadStats();
 });
 
 // ============================================
-// СТАТИСТИКА
+// СТАТИСТИКА (с подсчётом выполненных команд)
 // ============================================
 
 async function loadStats() {
     try {
+        // Получаем информацию о боте (сервера)
         const response = await fetch('/api/bot-info');
         if (response.ok) {
             const data = await response.json();
             const guildsEl = document.getElementById('statGuilds');
             if (guildsEl) guildsEl.textContent = data.guilds || 0;
+        }
+        
+        // Получаем список серверов
+        const guildsResponse = await fetch('/api/guilds');
+        if (guildsResponse.ok) {
+            const guilds = await guildsResponse.json();
+            let totalUsers = 0;
+            let totalCommands = 0;
             
-            // Пытаемся получить количество пользователей
-            try {
-                const guildsResponse = await fetch('/api/guilds');
-                if (guildsResponse.ok) {
-                    const guilds = await guildsResponse.json();
-                    let totalUsers = 0;
-                    // Загружаем участников с каждого сервера
-                    for (const guild of guilds) {
-                        try {
-                            const membersRes = await fetch(`/api/guilds/${guild.id}/members`);
-                            if (membersRes.ok) {
-                                const members = await membersRes.json();
-                                totalUsers += members.length;
-                            }
-                        } catch (e) {}
+            // Проходим по каждому серверу
+            for (const guild of guilds) {
+                try {
+                    // Получаем участников
+                    const membersRes = await fetch(`/api/guilds/${guild.id}/members`);
+                    if (membersRes.ok) {
+                        const members = await membersRes.json();
+                        totalUsers += members.length;
                     }
-                    const usersEl = document.getElementById('statUsers');
-                    if (usersEl) usersEl.textContent = totalUsers || '?';
+                    
+                    // Пытаемся получить количество выполненных команд
+                    // (для этого нужен эндпоинт, который возвращает статистику команд)
+                    // Пока используем заглушку — считаем сообщения как команды
+                    try {
+                        const leaderboardRes = await fetch(`/api/guilds/${guild.id}/leaderboard`);
+                        if (leaderboardRes.ok) {
+                            const leaderboard = await leaderboardRes.json();
+                            // Суммируем сообщения как выполненные команды
+                            const guildCommands = leaderboard.reduce((sum, user) => sum + (user.messages || 0), 0);
+                            totalCommands += guildCommands;
+                        }
+                    } catch (e) {
+                        // Если не получилось — пропускаем
+                    }
+                } catch (e) {
+                    // Пропускаем ошибки
                 }
-            } catch (e) {
-                const usersEl = document.getElementById('statUsers');
-                if (usersEl) usersEl.textContent = '?';
+            }
+            
+            // Обновляем количество пользователей
+            const usersEl = document.getElementById('statUsers');
+            if (usersEl) usersEl.textContent = totalUsers || '?';
+            
+            // Обновляем количество выполненных команд
+            const commandsEl = document.getElementById('statCommands');
+            if (commandsEl) {
+                if (totalCommands > 0) {
+                    // Форматируем число (например, 1.2K, 3.5M)
+                    commandsEl.textContent = formatNumber(totalCommands);
+                } else {
+                    commandsEl.textContent = '0';
+                }
             }
         }
     } catch (error) {
@@ -309,54 +363,18 @@ async function loadStats() {
 }
 
 // ============================================
-// ЗАПУСК ПРИ ЗАГРУЗКЕ
+// ФОРМАТИРОВАНИЕ ЧИСЕЛ
 // ============================================
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // Применяем тему
-    applyTheme(currentTheme);
-    
-    // Настраиваем кнопку переключения темы
-    const themeBtn = document.getElementById('dropdownTheme');
-    if (themeBtn) {
-        themeBtn.addEventListener('click', toggleTheme);
+function formatNumber(num) {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
     }
-    
-    // Настраиваем выход
-    setupLogout();
-    
-    // Настраиваем меню профиля
-    const profileBtn = document.getElementById('profileBtn');
-    const dropdown = document.getElementById('profileDropdown');
-    
-    if (profileBtn && dropdown) {
-        profileBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            dropdown.classList.toggle('open');
-            profileBtn.classList.toggle('active');
-        });
-        
-        document.addEventListener('click', () => {
-            dropdown.classList.remove('open');
-            profileBtn.classList.remove('active');
-        });
-        
-        dropdown.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
+    if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
     }
-    
-    // Настраиваем кнопку "Мои сервера" в меню
-    const serversBtn = document.getElementById('dropdownServers');
-    if (serversBtn) {
-        serversBtn.addEventListener('click', () => {
-            window.location.href = '/servers';
-        });
-    }
-    
-    // Загружаем профиль
-    await loadProfile();
-});
+    return num.toString();
+}
 
 // ============================================
 // СТРАНИЦА СЕРВЕРОВ
@@ -519,7 +537,7 @@ function loadCommands() {
 }
 
 // ============================================
-// СТРАНИЦА ЛИДЕРБОРДА (заглушка)
+// СТРАНИЦА ЛИДЕРБОРДА
 // ============================================
 
 async function loadLeaderboard() {
