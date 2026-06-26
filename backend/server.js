@@ -22,10 +22,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ============================================
-// СЕССИИ
+// СЕССИИ (ИСПРАВЛЕНЫ)
 // ============================================
 
 const sessionConfig = {
+    store: new FileStore({
+        path: './sessions',
+        ttl: 86400, // 24 часа
+        retries: 0
+    }),
     secret: process.env.SESSION_SECRET || 'fallback_secret_change_me',
     resave: false,
     saveUninitialized: false,
@@ -33,7 +38,7 @@ const sessionConfig = {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         sameSite: 'lax',
-        maxAge: 1000 * 60 * 60 * 24 * 30
+        maxAge: 1000 * 60 * 60 * 24 * 30 // 30 дней
     },
     rolling: true,
     name: 'knightbot.sid'
@@ -44,6 +49,12 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use(session(sessionConfig));
+
+// Логирование сессий
+app.use((req, res, next) => {
+    console.log(`🔍 Сессия: ${req.sessionID}, Авторизован: ${req.isAuthenticated ? 'Да' : 'Нет'}`);
+    next();
+});
 
 // ============================================
 // PASSPORT
