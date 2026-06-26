@@ -26,17 +26,22 @@ app.use(express.urlencoded({ extended: true }));
 // ============================================
 
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'secret',
+    secret: process.env.SESSION_SECRET || 'fallback_secret_12345',
     resave: false,
     saveUninitialized: false,
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         sameSite: 'lax',
-        maxAge: 1000 * 60 * 60 * 24 * 7
-    }
+        maxAge: 1000 * 60 * 60 * 24 * 30 // 30 дней (вместо 7)
+    },
+    rolling: true // обновляет сессию при каждом запросе
 }));
 
+app.use((req, res, next) => {
+    console.log('🔍 Сессия:', req.sessionID, req.user ? 'Авторизован' : 'Гость');
+    next();
+});
 // ============================================
 // PASSPORT
 // ============================================

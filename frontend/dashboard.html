@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Панель управления — Knight Bot</title>
+    <title>Панель — Knight Bot</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <div class="logo">
+            <a href="/" class="logo">
                 <i class="fas fa-robot"></i>
-                <span>Knight Bot</span>
-            </div>
+                Knight Bot
+            </a>
             <nav>
                 <a href="/">Главная</a>
                 <a href="/dashboard" class="active">Панель</a>
@@ -28,32 +29,28 @@
         </header>
 
         <div class="dashboard-layout">
-            <!-- Sidebar -->
             <aside class="sidebar">
                 <div class="sidebar-section">
-                    <h4>Сервера</h4>
+                    <h4><i class="fas fa-server"></i> Сервера</h4>
                     <div id="guildsList">
                         <p class="loading">Загрузка...</p>
                     </div>
                 </div>
-                <div class="sidebar-section">
-                    <h4>Быстрые действия</h4>
-                    <button class="sidebar-btn" id="inviteGuildBtn">
-                        <i class="fas fa-plus"></i> Пригласить бота
-                    </button>
-                </div>
             </aside>
 
-            <!-- Main Content -->
             <main class="main-content">
                 <div id="guildDashboard">
                     <div class="card">
-                        <h3>👋 Выберите сервер слева для управления</h3>
-                        <p>Выберите сервер, чтобы начать настройку</p>
+                        <h3><i class="fas fa-arrow-left"></i> Выберите сервер</h3>
+                        <p>Выберите сервер из списка слева, чтобы начать управление.</p>
                     </div>
                 </div>
             </main>
         </div>
+
+        <footer>
+            <p>Knight Bot — <span class="heart">❤️</span> Сделано с любовью для Discord</p>
+        </footer>
     </div>
 
     <script src="script.js"></script>
