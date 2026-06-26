@@ -116,6 +116,36 @@ async function loadGuilds() {
     }
 }
 
+// ============================================
+// ПАНЕЛЬ УПРАВЛЕНИЯ (dashboard.html)
+// ============================================
+
+async function loadDashboard() {
+    try {
+        const meResponse = await fetch('/api/me', {
+            credentials: 'include' // ОБЯЗАТЕЛЬНО для сессий
+        });
+        
+        if (!meResponse.ok) {
+            console.error('❌ Не авторизован, перенаправление на главную');
+            window.location.href = '/';
+            return;
+        }
+        
+        const user = await meResponse.json();
+        document.getElementById('userName').textContent = user.username;
+        document.getElementById('userAvatar').src = user.avatar 
+            ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` 
+            : 'https://cdn.discordapp.com/embed/avatars/0.png';
+        
+        await loadGuilds();
+        
+    } catch (error) {
+        console.error('Ошибка загрузки панели:', error);
+        window.location.href = '/';
+    }
+}
+
 async function selectGuild(guildId) {
     selectedGuildId = guildId;
     

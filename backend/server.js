@@ -11,46 +11,73 @@ const app = express();
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
 // ============================================
-// НАСТРОЙКИ
+// 1. ЛОГГЕР (для отладки сессий)
+// ============================================
+
+function logSession(req, message) {
+    console.log(`[SESSION] ${message} | ID: ${req.sessionID} | User: ${req.user?.username || 'Гость'}`);
+}
+
+// ============================================
+// 2. CORS (ОЧЕНЬ ВАЖНО ДЛЯ СЕССИЙ)
 // ============================================
 
 app.use(cors({
     origin: process.env.SITE_URL || 'http://localhost:3000',
-    credentials: true
+    credentials: true, // ОБЯЗАТЕЛЬНО для сессий
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ============================================
-// СЕССИИ
+// 3. СЕССИИ (ПРАВИЛЬНАЯ НАСТРОЙКА)
 // ============================================
 
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'fallback_secret_12345',
+const sessionConfig = {
+    secret: process.env.SESSION_SECRET || 'fallback_secret_change_me',
     resave: false,
     saveUninitialized: false,
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         sameSite: 'lax',
-        maxAge: 1000 * 60 * 60 * 24 * 30 // 30 дней (вместо 7)
+        maxAge: 1000 * 60 * 60 * 24 * 30 // 30 дней
     },
-    rolling: true // обновляет сессию при каждом запросе
-}));
+    rolling: true, // обновляет сессию при каждом запросе
+    name: 'knightbot.sid' // имя куки (чтобы не конфликтовать)
+};
 
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1); // Доверяем proxy на Render
+}
+
+app.use(session(sessionConfig));
+
+// Промежуточный слой для логирования сессий
 app.use((req, res, next) => {
-    console.log('🔍 Сессия:', req.sessionID, req.user ? 'Авторизован' : 'Гость');
+    logSession(req, 'Запрос');
     next();
 });
+
 // ============================================
-// PASSPORT
+// 4. PASSPORT
 // ============================================
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((obj, done) => done(null, obj));
+passport.serializeUser((user, done) => {
+    console.log('[PASSPORT] Сериализация:', user.id, user.username);
+    done(null, user);
+});
+
+passport.deserializeUser((obj, done) => {
+    console.log('[PASSPORT] Десериализация:', obj.id, obj.username);
+    done(null, obj);
+});
 
 passport.use(new DiscordStrategy({
     clientID: process.env.CLIENT_ID,
@@ -58,20 +85,29 @@ passport.use(new DiscordStrategy({
     callbackURL: process.env.REDIRECT_URI,
     scope: ['identify', 'guilds', 'guilds.members.read']
 }, (accessToken, refreshToken, profile, done) => {
-    process.nextTick(() => done(null, { ...profile, accessToken }));
+    console.log('[PASSPORT] Стратегия сработала для:', profile.username);
+    process.nextTick(() => done(null, { 
+        ...profile, 
+        accessToken,
+        refreshToken 
+    }));
 }));
 
 // ============================================
-// ПРОВЕРКА АВТОРИЗАЦИИ
+// 5. ПРОВЕРКА АВТОРИЗАЦИИ
 // ============================================
 
 function isAuthenticated(req, res, next) {
-    if (req.isAuthenticated()) return next();
+    if (req.isAuthenticated()) {
+        logSession(req, '✅ Авторизован');
+        return next();
+    }
+    logSession(req, '❌ НЕ авторизован');
     res.status(401).json({ error: 'Не авторизован' });
 }
 
 // ============================================
-// ПУБЛИЧНЫЕ ЭНДПОИНТЫ
+// 6. ПУБЛИЧНЫЕ ЭНДПОИНТЫ
 // ============================================
 
 app.get('/api/bot-info', async (req, res) => {
@@ -86,34 +122,51 @@ app.get('/api/bot-info', async (req, res) => {
 });
 
 app.get('/api/invite-url', (req, res) => {
-    const url = `https://discord.com/oauth2/authorize?client_id=${process.env.CLIENT_ID}&permissions=8&scope=bot%20applications.commands`;
+    const clientId = process.env.CLIENT_ID;
+    const url = `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=8&scope=bot%20applications.commands`;
     res.json({ url });
 });
 
 // ============================================
-// АВТОРИЗАЦИЯ
+// 7. АВТОРИЗАЦИЯ
 // ============================================
 
-app.get('/auth/discord', passport.authenticate('discord'));
+app.get('/auth/discord', (req, res, next) => {
+    logSession(req, 'Начало авторизации');
+    passport.authenticate('discord')(req, res, next);
+});
 
 app.get('/auth/discord/callback',
     passport.authenticate('discord', {
         failureRedirect: '/',
-        successRedirect: '/dashboard'
-    })
+        successRedirect: '/dashboard',
+        failureFlash: false,
+        successFlash: false
+    }),
+    (req, res) => {
+        logSession(req, '✅ Успешный вход');
+        res.redirect('/dashboard');
+    }
 );
 
 app.get('/auth/logout', (req, res) => {
-    req.logout(() => {
-        res.redirect('/');
+    logSession(req, 'Выход из аккаунта');
+    req.logout((err) => {
+        if (err) console.error('Ошибка выхода:', err);
+        req.session.destroy((err) => {
+            if (err) console.error('Ошибка удаления сессии:', err);
+            res.clearCookie('knightbot.sid');
+            res.redirect('/');
+        });
     });
 });
 
 // ============================================
-// ЗАЩИЩЁННЫЕ ЭНДПОИНТЫ
+// 8. ЗАЩИЩЁННЫЕ ЭНДПОИНТЫ
 // ============================================
 
 app.get('/api/me', isAuthenticated, (req, res) => {
+    logSession(req, 'Запрос /api/me');
     res.json(req.user);
 });
 
@@ -143,34 +196,63 @@ app.get('/api/my-guilds', isAuthenticated, async (req, res) => {
     }
 });
 
+app.get('/api/guilds/:guildId', isAuthenticated, async (req, res) => {
+    try {
+        const [guild, channels, roles, members] = await Promise.all([
+            axios.get(`https://discord.com/api/v10/guilds/${req.params.guildId}`, {
+                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
+            }),
+            axios.get(`https://discord.com/api/v10/guilds/${req.params.guildId}/channels`, {
+                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
+            }),
+            axios.get(`https://discord.com/api/v10/guilds/${req.params.guildId}/roles`, {
+                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
+            }),
+            axios.get(`https://discord.com/api/v10/guilds/${req.params.guildId}/members?limit=1000`, {
+                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
+            })
+        ]);
+
+        res.json({
+            guild: guild.data,
+            channels: channels.data.filter(c => c.type === 0),
+            roles: roles.data,
+            members: members.data.filter(m => !m.user.bot)
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ============================================
-// ⚠️ ВАЖНО: ПРАВИЛЬНЫЙ ПУТЬ К СТАТИКЕ
+// 9. СТАТИЧЕСКИЕ ФАЙЛЫ
 // ============================================
 
-// Получаем абсолютный путь к папке frontend
 const frontendPath = path.join(__dirname, '..', 'frontend');
-console.log('📂 Путь к фронтенду:', frontendPath);
-
-// Раздаём статику
 app.use(express.static(frontendPath));
 
-// Главная страница
 app.get('/', (req, res) => {
+    logSession(req, 'Главная страница');
     res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-// Панель управления
-app.get('/dashboard', (req, res) => {
+app.get('/dashboard', isAuthenticated, (req, res) => {
+    logSession(req, 'Панель управления');
     res.sendFile(path.join(frontendPath, 'dashboard.html'));
 });
 
-// Любой другой GET запрос - отдаём index.html (для SPA)
-app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
+// ============================================
+// 10. ОБРАБОТКА ОШИБОК
+// ============================================
+
+app.use((err, req, res, next) => {
+    console.error('❌ Ошибка:', err.message);
+    console.error(err.stack);
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
 });
 
 // ============================================
-// ЗАПУСК
+// 11. ЗАПУСК
 // ============================================
 
 const PORT = process.env.PORT || 3000;
