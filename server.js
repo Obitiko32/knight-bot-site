@@ -65,35 +65,6 @@ passport.use(new DiscordStrategy({
 }));
 
 // ============================================
-// ЗАГЛУШКИ ДЛЯ API (ЕСЛИ БОТ НЕ РАБОТАЕТ)
-// ============================================
-
-app.get('/api/bot-guilds', isAuthenticated, (req, res) => {
-    // Заглушка — возвращаем пустой массив
-    res.json([]);
-});
-
-app.get('/api/user-guilds', isAuthenticated, (req, res) => {
-    // Заглушка — возвращаем тестовые сервера
-    res.json([
-        {
-            id: '123456789',
-            name: 'Тестовый сервер 1',
-            icon: null,
-            approximate_member_count: 10,
-            permissions: 0x8
-        },
-        {
-            id: '987654321',
-            name: 'Тестовый сервер 2',
-            icon: null,
-            approximate_member_count: 5,
-            permissions: 0x8
-        }
-    ]);
-});
-
-// ============================================
 // ПРОВЕРКА АВТОРИЗАЦИИ
 // ============================================
 
@@ -103,105 +74,32 @@ function isAuthenticated(req, res, next) {
 }
 
 // ============================================
-// 1. API МАРШРУТЫ
+// ПУБЛИЧНЫЕ API
 // ============================================
 
-// Публичные
 app.get('/api/bot-info', async (req, res) => {
     try {
         if (BOT_TOKEN) {
             const response = await axios.get('https://discord.com/api/v10/users/@me', {
                 headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
             });
-            res.json(response.data);
+            res.json({
+                username: response.data.username,
+                id: response.data.id,
+                guilds: 0
+            });
         } else {
-            res.json({ username: 'Knight Bot (заглушка)', id: '0', guilds: 0 });
+            res.json({ username: 'Knight Bot', id: '0', guilds: 0 });
         }
     } catch (error) {
-        res.json({ username: 'Knight Bot (офлайн)', id: '0', guilds: 0 });
+        res.json({ username: 'Knight Bot', id: '0', guilds: 0 });
     }
 });
-
-// ============================================
-// ССЫЛКА ДЛЯ ПРИГЛАШЕНИЯ С ПРАВАМИ
-// ============================================
 
 app.get('/api/invite-url', (req, res) => {
     const clientId = process.env.CLIENT_ID || '0';
-    // Права: Administrator (0x8) + Manage Server (0x20)
-    const permissions = '8'; // Administrator
-    const url = `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=${permissions}&scope=bot%20applications.commands`;
+    const url = `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=8&scope=bot%20applications.commands`;
     res.json({ url });
-});
-
-// Ссылка для приглашения на конкретный сервер
-app.get('/api/invite-url/:guildId', (req, res) => {
-    const clientId = process.env.CLIENT_ID || '0';
-    const guildId = req.params.guildId;
-    const permissions = '8'; // Administrator
-    const url = `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=${permissions}&scope=bot%20applications.commands&guild_id=${guildId}`;
-    res.json({ url });
-});
-
-app.get('/api/guilds', async (req, res) => {
-    try {
-        if (BOT_TOKEN) {
-            const response = await axios.get('https://discord.com/api/v10/users/@me/guilds', {
-                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
-            });
-            res.json(response.data);
-        } else {
-            res.json([]);
-        }
-    } catch (error) {
-        res.json([]);
-    }
-});
-
-// ============================================
-// ЭНДПОИНТЫ ДЛЯ СЕРВЕРОВ
-// ============================================
-
-// Все сервера пользователя (из Discord)
-app.get('/api/user-guilds', isAuthenticated, (req, res) => {
-    try {
-        const guilds = req.user.guilds || [];
-        const adminGuilds = guilds.filter(g => (g.permissions & 0x8) === 0x8);
-        console.log(`✅ /api/user-guilds: ${adminGuilds.length} серверов`);
-        res.json(adminGuilds);
-    } catch (error) {
-        console.error('❌ /api/user-guilds ошибка:', error);
-        res.json([]);
-    }
-});
-
-// Сервера, где есть бот
-app.get('/api/bot-guilds', isAuthenticated, async (req, res) => {
-    try {
-        if (!BOT_TOKEN) {
-            console.log('⚠️ BOT_TOKEN не найден');
-            return res.json([]);
-        }
-        
-        console.log('🔍 Запрос к Discord API для получения серверов бота...');
-        
-        const response = await axios.get('https://discord.com/api/v10/users/@me/guilds', {
-            headers: {
-                'Authorization': `Bot ${BOT_TOKEN}`
-            },
-            timeout: 10000
-        });
-        
-        console.log(`✅ Бот на ${response.data.length} серверах`);
-        res.json(response.data);
-    } catch (error) {
-        console.error('❌ Ошибка получения серверов бота:', error.message);
-        if (error.response) {
-            console.error('Статус:', error.response.status);
-            console.error('Данные:', error.response.data);
-        }
-        res.json([]);
-    }
 });
 
 // ============================================
@@ -244,43 +142,51 @@ app.get('/api/me', isAuthenticated, (req, res) => {
     res.json(req.user);
 });
 
-app.get('/api/my-guilds', isAuthenticated, async (req, res) => {
+// ===== ПОЛУЧЕНИЕ СЕРВЕРОВ ПОЛЬЗОВАТЕЛЯ =====
+app.get('/api/user-guilds', isAuthenticated, (req, res) => {
     try {
-        if (BOT_TOKEN) {
-            const userGuilds = req.user.guilds || [];
-            const botGuildsResponse = await axios.get('https://discord.com/api/v10/users/@me/guilds', {
-                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
-            });
-            const botGuilds = botGuildsResponse.data;
-            const botGuildIds = new Set(botGuilds.map(g => g.id));
-
-            const guilds = userGuilds
-                .filter(g => botGuildIds.has(g.id))
-                .filter(g => (g.permissions & 0x8) === 0x8)
-                .map(g => ({
-                    id: g.id,
-                    name: g.name,
-                    icon: g.icon,
-                    member_count: g.approximate_member_count || 0,
-                    botInGuild: true,
-                    isAdmin: true
-                }));
-
-            res.json({ guilds });
-        } else {
-            res.json({ guilds: [] });
-        }
+        const guilds = req.user.guilds || [];
+        // Фильтруем только сервера с правами администратора (0x8)
+        const adminGuilds = guilds.filter(g => (g.permissions & 0x8) === 0x8);
+        console.log(`✅ /api/user-guilds: ${adminGuilds.length} серверов`);
+        res.json(adminGuilds);
     } catch (error) {
-        res.json({ guilds: [] });
+        console.error('❌ /api/user-guilds ошибка:', error);
+        res.json([]);
     }
 });
 
-// ===== ПОЛУЧЕНИЕ РЕАЛЬНЫХ УЧАСТНИКОВ СЕРВЕРА =====
-// ============================================
-// API ДЛЯ МОДЕРАЦИИ (РЕАЛЬНЫЕ ДАННЫЕ)
-// ============================================
+// ===== ПОЛУЧЕНИЕ СЕРВЕРОВ БОТА =====
+app.get('/api/bot-guilds', isAuthenticated, async (req, res) => {
+    try {
+        if (!BOT_TOKEN) {
+            console.log('⚠️ BOT_TOKEN не найден, возвращаем пустой массив');
+            return res.json([]);
+        }
+        
+        console.log('🔍 Запрос к Discord API для получения серверов бота...');
+        
+        const response = await axios.get('https://discord.com/api/v10/users/@me/guilds', {
+            headers: {
+                'Authorization': `Bot ${BOT_TOKEN}`
+            },
+            timeout: 10000
+        });
+        
+        console.log(`✅ Бот на ${response.data.length} серверах`);
+        res.json(response.data);
+    } catch (error) {
+        console.error('❌ Ошибка получения серверов бота:', error.message);
+        if (error.response) {
+            console.error('Статус:', error.response.status);
+            console.error('Данные:', error.response.data);
+        }
+        // Возвращаем пустой массив, чтобы не ломать сайт
+        res.json([]);
+    }
+});
 
-// ===== ПОЛУЧЕНИЕ РЕАЛЬНЫХ УЧАСТНИКОВ =====
+// ===== ПОЛУЧЕНИЕ УЧАСТНИКОВ =====
 app.get('/api/guilds/:guildId/members', isAuthenticated, async (req, res) => {
     try {
         const { guildId } = req.params;
@@ -292,7 +198,8 @@ app.get('/api/guilds/:guildId/members', isAuthenticated, async (req, res) => {
         const response = await axios.get(
             `https://discord.com/api/v10/guilds/${guildId}/members?limit=1000`,
             {
-                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
+                headers: { 'Authorization': `Bot ${BOT_TOKEN}` },
+                timeout: 10000
             }
         );
         
@@ -314,7 +221,7 @@ app.get('/api/guilds/:guildId/members', isAuthenticated, async (req, res) => {
     }
 });
 
-// ===== ПОЛУЧЕНИЕ РЕАЛЬНЫХ РОЛЕЙ =====
+// ===== ПОЛУЧЕНИЕ РОЛЕЙ =====
 app.get('/api/guilds/:guildId/roles', isAuthenticated, async (req, res) => {
     try {
         const { guildId } = req.params;
@@ -326,7 +233,8 @@ app.get('/api/guilds/:guildId/roles', isAuthenticated, async (req, res) => {
         const response = await axios.get(
             `https://discord.com/api/v10/guilds/${guildId}/roles`,
             {
-                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
+                headers: { 'Authorization': `Bot ${BOT_TOKEN}` },
+                timeout: 10000
             }
         );
         
@@ -345,23 +253,16 @@ app.get('/api/guilds/:guildId/roles', isAuthenticated, async (req, res) => {
     }
 });
 
-// ===== ПОЛУЧЕНИЕ РЕАЛЬНОГО ЛИДЕРБОРДА =====
-app.get('/api/guilds/:guildId/leaderboard', isAuthenticated, async (req, res) => {
-    try {
-        const { guildId } = req.params;
-        
-        // Здесь нужна БД для хранения сообщений
-        // Пока возвращаем тестовые данные
-        res.json([
-            { id: '1', username: 'TopUser', display_name: 'Топ пользователь', messages: 5000, avatar: null },
-            { id: '2', username: 'SecondUser', display_name: 'Второй', messages: 3000, avatar: null },
-            { id: '3', username: 'ThirdUser', display_name: 'Третий', messages: 1000, avatar: null }
-        ]);
-    } catch (error) {
-        res.json([]);
-    }
+// ===== ЛИДЕРБОРД (заглушка) =====
+app.get('/api/guilds/:guildId/leaderboard', isAuthenticated, (req, res) => {
+    res.json([
+        { id: '1', username: 'TopUser', display_name: 'Топ пользователь', messages: 5000, avatar: null },
+        { id: '2', username: 'SecondUser', display_name: 'Второй', messages: 3000, avatar: null },
+        { id: '3', username: 'ThirdUser', display_name: 'Третий', messages: 1000, avatar: null }
+    ]);
 });
 
+// ===== ПОРОГИ РОЛЕЙ (заглушка) =====
 app.get('/api/guilds/:guildId/thresholds', isAuthenticated, (req, res) => {
     res.json({
         1000: 'role_1',
@@ -384,41 +285,6 @@ app.post('/api/guilds/:guildId/unmute', isAuthenticated, (req, res) => {
 
 const frontendPath = path.join(__dirname, '..', 'frontend');
 app.use(express.static(frontendPath));
-
-// ============================================
-// ПОЛУЧЕНИЕ СЕРВЕРОВ С ПРОВЕРКОЙ ПРАВ
-// ============================================
-
-app.get('/api/user-guilds', isAuthenticated, (req, res) => {
-    const guilds = req.user.guilds || [];
-    
-    // Фильтруем только сервера с правами администратора
-    const adminGuilds = guilds.filter(g => (g.permissions & 0x8) === 0x8);
-    
-    res.json(adminGuilds);
-});
-
-// ============================================
-// ПОЛУЧЕНИЕ СЕРВЕРОВ ДЛЯ ПРИГЛАШЕНИЯ (только где есть права)
-// ============================================
-
-app.get('/api/inviteable-guilds', isAuthenticated, (req, res) => {
-    const guilds = req.user.guilds || [];
-    
-    // Только сервера с правами администратора
-    const adminGuilds = guilds.filter(g => (g.permissions & 0x8) === 0x8);
-    
-    // Форматируем для отображения
-    const result = adminGuilds.map(g => ({
-        id: g.id,
-        name: g.name,
-        icon: g.icon,
-        member_count: g.approximate_member_count || 0,
-        hasBot: false // будет проверяться отдельно
-    }));
-    
-    res.json(result);
-});
 
 // ============================================
 // СТРАНИЦЫ
@@ -444,20 +310,16 @@ app.get('/moderation', (req, res) => {
     res.sendFile(path.join(frontendPath, 'moderation.html'));
 });
 
-app.get('/roles-settings', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'roles-settings.html'));
+app.get('/guild-settings', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'guild-settings.html'));
 });
 
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(frontendPath, 'dashboard.html'));
 });
 
-app.get('/guild-settings', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'guild-settings.html'));
-});
-
 // ============================================
-// 404 (В САМОМ КОНЦЕ!)
+// 404
 // ============================================
 
 app.get('*', (req, res) => {
