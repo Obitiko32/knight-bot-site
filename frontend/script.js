@@ -330,65 +330,51 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============================================
-// СТАТИСТИКА (с подсчётом выполненных команд)
+// СТАТИСТИКА (исправлена)
 // ============================================
 
 async function loadStats() {
     try {
-        // Получаем информацию о боте (сервера)
-        const response = await fetch('/api/bot-info');
-        if (response.ok) {
-            const data = await response.json();
+        // Получаем информацию о боте
+        const botInfoResponse = await fetch('/api/bot-info');
+        if (botInfoResponse.ok) {
+            const botInfo = await botInfoResponse.json();
             const guildsEl = document.getElementById('statGuilds');
-            if (guildsEl) guildsEl.textContent = data.guilds || 0;
+            if (guildsEl) guildsEl.textContent = botInfo.guilds || 0;
         }
         
-        // Получаем список серверов
+        // Получаем список серверов бота
         const guildsResponse = await fetch('/api/guilds');
         if (guildsResponse.ok) {
             const guilds = await guildsResponse.json();
             let totalUsers = 0;
             let totalCommands = 0;
             
-            // Проходим по каждому серверу
             for (const guild of guilds) {
                 try {
-                    // Получаем участников
                     const membersRes = await fetch(`/api/guilds/${guild.id}/members`);
                     if (membersRes.ok) {
                         const members = await membersRes.json();
                         totalUsers += members.length;
                     }
-                    
-                    // Получаем лидерборд для подсчёта команд (сообщений)
-                    try {
-                        const leaderboardRes = await fetch(`/api/guilds/${guild.id}/leaderboard`);
-                        if (leaderboardRes.ok) {
-                            const leaderboard = await leaderboardRes.json();
-                            // Суммируем сообщения как выполненные команды
-                            const guildCommands = leaderboard.reduce((sum, user) => sum + (user.messages || 0), 0);
-                            totalCommands += guildCommands;
-                        }
-                    } catch (e) {
-                        // Если не получилось — пропускаем
+                } catch (e) {}
+                
+                try {
+                    const leaderboardRes = await fetch(`/api/guilds/${guild.id}/leaderboard`);
+                    if (leaderboardRes.ok) {
+                        const leaderboard = await leaderboardRes.json();
+                        const guildCommands = leaderboard.reduce((sum, user) => sum + (user.messages || 0), 0);
+                        totalCommands += guildCommands;
                     }
-                } catch (e) {
-                    // Пропускаем ошибки
-                }
+                } catch (e) {}
             }
             
-            // Обновляем количество пользователей
             const usersEl = document.getElementById('statUsers');
-            if (usersEl) usersEl.textContent = totalUsers || '?';
+            if (usersEl) usersEl.textContent = totalUsers || '0';
             
-            // Обновляем количество выполненных команд
             const commandsEl = document.getElementById('statCommands');
             if (commandsEl) {
-                if (totalCommands > 0) {
-                    commandsEl.textContent = formatNumber(totalCommands);
-                } else {
-                    commandsEl.textContent = '0';
-                }
+                commandsEl.textContent = formatNumber(totalCommands) || '0';
             }
         }
     } catch (error) {
@@ -414,11 +400,14 @@ function formatNumber(num) {
 // СТРАНИЦА СЕРВЕРОВ (ИСПРАВЛЕНА)
 // ============================================
 
+// ============================================
+// СТРАНИЦА СЕРВЕРОВ (ИСПРАВЛЕНА)
+// ============================================
+
 async function loadServers() {
     const container = document.getElementById('serversContainer');
     if (!container) return;
     
-    // Показываем загрузку
     container.innerHTML = `
         <div class="loading-container" style="grid-column: 1/-1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 0; gap: 16px;">
             <div class="loading-spinner"></div>
@@ -427,7 +416,7 @@ async function loadServers() {
     `;
     
     try {
-        // Проверяем авторизацию с повторными попытками
+        // Проверяем авторизацию
         let user = null;
         let attempts = 0;
         const maxAttempts = 5;
@@ -439,9 +428,7 @@ async function loadServers() {
                     user = await response.json();
                     break;
                 }
-            } catch (e) {
-                // Ждём и пробуем снова
-            }
+            } catch (e) {}
             attempts++;
             if (attempts < maxAttempts) {
                 await new Promise(resolve => setTimeout(resolve, 500));
@@ -449,99 +436,74 @@ async function loadServers() {
         }
         
         if (!user) {
-            // Если не авторизован — отправляем на главную
             window.location.href = '/';
             return;
         }
         
-        // Загружаем сервера
-        const guildsData = await apiFetch('/api/my-guilds');
-        const guildList = guildsData.guilds || [];
+        // Получаем ВСЕ сервера пользователя (из Discord)
+        const userGuildsResponse = await fetch('/api/user-guilds', { credentials: 'include' });
+        const userGuilds = await userGuildsResponse.json();
         
-        if (guildList.length === 0) {
+        // Получаем сервера, где есть бот
+        const botGuildsResponse = await fetch('/api/bot-guilds', { credentials: 'include' });
+        const botGuilds = await botGuildsResponse.json();
+        const botGuildIds = new Set(botGuilds.map(g => g.id));
+        
+        // Объединяем данные
+        const allGuilds = userGuilds.map(g => ({
+            ...g,
+            hasBot: botGuildIds.has(g.id)
+        }));
+        
+        if (allGuilds.length === 0) {
             container.innerHTML = `
                 <div class="empty-state" style="grid-column: 1/-1;">
                     <i class="fas fa-castle"></i>
                     <h3>Нет серверов</h3>
-                    <p>Knight Bot не добавлен ни на один ваш сервер</p>
-                    <a href="#" class="btn-primary" style="margin-top: 16px; display: inline-block;" id="emptyInviteBtn">
-                        <i class="fas fa-plus"></i> Пригласить бота
-                    </a>
+                    <p>Вы не являетесь администратором ни одного сервера</p>
                 </div>
             `;
-            
-            const emptyBtn = document.getElementById('emptyInviteBtn');
-            if (emptyBtn) {
-                emptyBtn.onclick = async (e) => {
-                    e.preventDefault();
-                    try {
-                        const data = await apiFetch('/api/invite-url');
-                        window.open(data.url, '_blank');
-                    } catch (error) {
-                        showToast('Ошибка получения ссылки', 'error');
-                    }
-                };
-            }
             return;
         }
         
-        // Отображаем сервера с плавной анимацией
-        container.style.opacity = '0';
-        container.innerHTML = guildList.map(guild => `
-            <div class="server-card" onclick="window.location.href='/moderation?guild=${guild.id}'" style="animation: fadeInUp 0.5s ease forwards; animation-delay: ${Math.random() * 0.3}s;">
+        // Отображаем сервера
+        container.innerHTML = allGuilds.map(guild => `
+            <div class="server-card">
                 <div class="server-icon">
                     ${guild.icon 
                         ? `<img src="https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png" alt="${guild.name}">` 
                         : guild.name.charAt(0).toUpperCase()
                     }
                 </div>
-                <div class="server-name">${guild.name}</div>
-                <div class="server-members">👥 ${guild.member_count || 0} участников</div>
+                <div class="server-info">
+                    <div class="server-name">${guild.name}</div>
+                    <div class="server-members">👥 ${guild.approximate_member_count || 0} участников</div>
+                </div>
                 <div class="server-actions">
-                    <button class="btn-primary btn-sm" onclick="event.stopPropagation(); window.location.href='/moderation?guild=${guild.id}'">
-                        <i class="fas fa-cog"></i> Управлять
-                    </button>
-                    <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); inviteToServer('${guild.id}')">
-                        <i class="fas fa-user-plus"></i> Пригласить
-                    </button>
+                    ${guild.hasBot 
+                        ? `<button class="btn-primary btn-sm" onclick="window.location.href='/guild-settings?guild=${guild.id}'">
+                            <i class="fas fa-cog"></i> Управлять
+                        </button>`
+                        : `<button class="btn-secondary btn-sm" onclick="inviteToServer('${guild.id}')">
+                            <i class="fas fa-user-plus"></i> Пригласить
+                        </button>`
+                    }
                 </div>
             </div>
         `).join('');
         
-        // Плавное появление
-        setTimeout(() => {
-            container.style.opacity = '1';
-            container.style.transition = 'opacity 0.5s ease';
-        }, 50);
-        
-        // Поиск
-        const searchInput = document.getElementById('serverSearch');
-        if (searchInput) {
-            searchInput.addEventListener('input', () => {
-                const query = searchInput.value.toLowerCase();
-                document.querySelectorAll('.server-card').forEach(card => {
-                    const name = card.querySelector('.server-name')?.textContent?.toLowerCase() || '';
-                    card.style.display = name.includes(query) ? '' : 'none';
-                });
-            });
-        }
-        
     } catch (error) {
         console.error('Ошибка загрузки серверов:', error);
-        if (error.message.includes('Не авторизован')) {
-            window.location.href = '/';
-        } else {
-            container.innerHTML = `
-                <div class="empty-state" style="grid-column: 1/-1;">
-                    <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
-                    <h3>Ошибка загрузки</h3>
-                    <p>${error.message}</p>
-                    <button class="btn-primary" style="margin-top: 16px;" onclick="location.reload()">
-                        <i class="fas fa-sync"></i> Попробовать снова
-                    </button>
-                </div>
-            `;
-        }
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1/-1;">
+                <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
+                <h3>Ошибка загрузки</h3>
+                <p>${error.message}</p>
+                <button class="btn-primary" style="margin-top: 16px;" onclick="location.reload()">
+                    <i class="fas fa-sync"></i> Попробовать снова
+                </button>
+            </div>
+        `;
     }
 }
 

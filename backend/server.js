@@ -295,6 +295,33 @@ app.get('*', (req, res) => {
 // ============================================
 // ЗАПУСК
 // ============================================
+// ============================================
+
+
+// НОВЫЕ API ДЛЯ СЕРВЕРОВ
+// ============================================
+
+// Все сервера пользователя (из Discord)
+app.get('/api/user-guilds', isAuthenticated, (req, res) => {
+    const guilds = req.user.guilds || [];
+    res.json(guilds);
+});
+
+// Сервера, где есть бот
+app.get('/api/bot-guilds', isAuthenticated, async (req, res) => {
+    try {
+        if (BOT_TOKEN) {
+            const response = await axios.get('https://discord.com/api/v10/users/@me/guilds', {
+                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
+            });
+            res.json(response.data);
+        } else {
+            res.json([]);
+        }
+    } catch (error) {
+        res.json([]);
+    }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
