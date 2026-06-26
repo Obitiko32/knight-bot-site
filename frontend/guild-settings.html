@@ -22,11 +22,11 @@
                 <a href="/commands">Команды</a>
                 <a href="/leaderboard">Рейтинг</a>
                 <div class="profile-container" id="profileContainer">
-                    <div class="profile-btn" id="profileBtn">
+                    <button class="profile-btn" id="profileBtn">
                         <img class="avatar" id="profileAvatar" src="" alt="Avatar">
                         <span class="name" id="profileName">Войти</span>
                         <i class="fas fa-chevron-down chevron"></i>
-                    </div>
+                    </button>
                     <div class="profile-dropdown" id="profileDropdown">
                         <div class="dropdown-header">
                             <div class="user-name" id="dropdownUserName">Гость</div>
@@ -52,7 +52,7 @@
             <!-- Заголовок -->
             <div class="guild-header">
                 <div class="guild-header-left">
-                    <div class="guild-icon-large">⚔️</div>
+                    <div class="guild-icon-large" id="guildIcon">⚔️</div>
                     <div>
                         <h1 id="guildName">Название сервера</h1>
                         <p id="guildId">ID: 123456789</p>
@@ -66,7 +66,7 @@
             <!-- Вкладки -->
             <div class="guild-tabs">
                 <button class="guild-tab active" data-tab="overview">
-                    <i class="fas fa-cog"></i> Основное
+                    <i class="fas fa-sliders-h"></i> Основное
                 </button>
                 <button class="guild-tab" data-tab="moderation">
                     <i class="fas fa-shield-halved"></i> Модерация
@@ -85,22 +85,16 @@
                     <h3><i class="fas fa-cog"></i> Основные настройки</h3>
                     <div class="settings-group">
                         <label>Префикс команд</label>
-                        <input type="text" value="!" disabled>
+                        <div class="settings-value">!</div>
                         <small>Префикс для текстовых команд</small>
                     </div>
                     <div class="settings-group">
                         <label>Язык интерфейса бота</label>
-                        <select disabled>
-                            <option>Русский</option>
-                            <option>English</option>
-                        </select>
+                        <div class="settings-value">Русский</div>
                     </div>
                     <div class="settings-group">
                         <label>Часовой пояс сервера</label>
-                        <select disabled>
-                            <option>(UTC+00:00) Greenwich Mean Time</option>
-                            <option>(UTC+03:00) Moscow</option>
-                        </select>
+                        <div class="settings-value">(UTC+00:00) Greenwich Mean Time</div>
                     </div>
                 </div>
 
@@ -108,10 +102,7 @@
                     <h3><i class="fas fa-shield-halved"></i> Доступ и безопасность</h3>
                     <div class="settings-group">
                         <label>Доверенные роли Администраторов</label>
-                        <select disabled>
-                            <option>Только Владелец Сервера</option>
-                            <option>Администраторы</option>
-                        </select>
+                        <div class="settings-value">Только Владелец Сервера</div>
                         <small>Все Администраторы, если не указано</small>
                     </div>
                 </div>
@@ -140,7 +131,7 @@
             <!-- Вкладка: Модерация -->
             <div id="tab-moderation" class="guild-tab-content">
                 <div class="settings-card">
-                    <h3><i class="fas fa-shield-halved"></i> Модерация</h3>
+                    <h3><i class="fas fa-users"></i> Участники сервера</h3>
                     <p class="hint">Управление участниками сервера</p>
                     <div id="membersList" style="max-height: 400px; overflow-y: auto;">
                         <div class="loading-spinner" style="margin: 20px auto; display: block;"></div>

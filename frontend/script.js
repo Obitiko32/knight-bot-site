@@ -29,7 +29,6 @@ function applyTheme(theme) {
 function toggleTheme() {
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
     applyTheme(newTheme);
-    showToast(newTheme === 'dark' ? '🌙 Тёмная тема' : '☀️ Светлая тема', 'info');
 }
 
 // ============================================

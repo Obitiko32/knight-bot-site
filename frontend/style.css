@@ -913,3 +913,393 @@ footer .heart {
         justify-content: flex-end;
     }
 }
+
+/* ============================================
+   ГЛАВНАЯ СТРАНИЦА СЕРВЕРОВ
+   ============================================ */
+
+.servers-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 0 40px;
+}
+
+.server-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    transition: all var(--transition);
+    box-shadow: var(--shadow);
+}
+
+.server-card:hover {
+    transform: translateX(6px);
+    border-color: var(--gold);
+    box-shadow: var(--shadow-hover);
+}
+
+.server-card .server-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+}
+
+.server-card .server-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    overflow: hidden;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+}
+
+.server-card .server-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.server-card .server-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.server-card .server-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.server-card .server-members {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.server-card .server-members .online-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #2ecc71;
+}
+
+.server-card .server-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.server-card .server-actions .btn-sm {
+    padding: 6px 16px !important;
+    font-size: 12px !important;
+    border-radius: var(--radius-xs) !important;
+    white-space: nowrap;
+}
+
+.server-card .btn-manage {
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark)) !important;
+    color: var(--text-inverse) !important;
+}
+
+.server-card .btn-manage:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(200, 157, 92, 0.3);
+}
+
+.server-card .btn-invite {
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--border) !important;
+}
+
+.server-card .btn-invite:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   УПРАВЛЕНИЕ СЕРВЕРОМ
+   ============================================ */
+
+.guild-settings {
+    padding: 20px 0 40px;
+}
+
+.guild-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0 20px;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.guild-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.guild-icon-large {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: var(--text-inverse);
+}
+
+.guild-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.guild-header p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Вкладки */
+.guild-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-secondary);
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 24px;
+    overflow-x: auto;
+}
+
+.guild-tab {
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all var(--transition);
+    white-space: nowrap;
+    font-family: 'Inter', sans-serif;
+}
+
+.guild-tab:hover {
+    color: var(--text-primary);
+    background: rgba(200, 157, 92, 0.08);
+}
+
+.guild-tab.active {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    box-shadow: var(--shadow);
+}
+
+.guild-tab i {
+    margin-right: 8px;
+}
+
+.guild-tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.guild-tab-content.active {
+    display: block;
+}
+
+/* Карточки настроек */
+.settings-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.settings-card h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-card h3 i {
+    color: var(--gold);
+}
+
+.settings-group {
+    margin-bottom: 16px;
+}
+
+.settings-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.settings-value {
+    padding: 8px 0;
+    font-size: 15px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.settings-group small {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* Toggle Switch */
+.toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.toggle {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    cursor: pointer;
+}
+
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle .toggle-slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-secondary);
+    border-radius: 26px;
+    transition: 0.3s;
+}
+
+.toggle .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.toggle input:checked + .toggle-slider {
+    background: var(--gold);
+}
+
+.toggle input:checked + .toggle-slider::before {
+    transform: translateX(22px);
+}
+
+.toggle input:disabled + .toggle-slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.hint {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+/* Участники */
+.member-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.member-item:last-child {
+    border-bottom: none;
+}
+
+.member-item .user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.member-item .avatar-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.member-item .username {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.member-item .user-actions {
+    display: flex;
+    gap: 6px;
+}
+
+/* Адаптив */
+@media (max-width: 600px) {
+    .server-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .server-card .server-actions {
+        justify-content: flex-end;
+    }
+    
+    .guild-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .guild-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+}
