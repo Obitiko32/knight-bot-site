@@ -401,10 +401,6 @@ function formatNumber(num) {
 // СТРАНИЦА СЕРВЕРОВ (ИСПРАВЛЕНА)
 // ============================================
 
-// ============================================
-// СТРАНИЦА СЕРВЕРОВ (ИСПРАВЛЕНА)
-// ============================================
-
 async function loadServers() {
     const container = document.getElementById('serversContainer');
     if (!container) return;
@@ -450,48 +446,50 @@ async function loadServers() {
         const botGuilds = await botGuildsResponse.json();
         const botGuildIds = new Set(botGuilds.map(g => g.id));
         
-        // Объединяем данные
-        const allGuilds = userGuilds.map(g => ({
-            ...g,
-            hasBot: botGuildIds.has(g.id)
-        }));
+        // Фильтруем сервера: только где есть права администратора (0x8)
+        const adminGuilds = userGuilds.filter(g => (g.permissions & 0x8) === 0x8);
         
-        if (allGuilds.length === 0) {
+        if (adminGuilds.length === 0) {
             container.innerHTML = `
                 <div class="empty-state" style="grid-column: 1/-1;">
-                    <i class="fas fa-castle"></i>
-                    <h3>Нет серверов</h3>
-                    <p>Вы не являетесь администратором ни одного сервера</p>
+                    <i class="fas fa-shield-halved"></i>
+                    <h3>Нет серверов с правами</h3>
+                    <p>У вас нет прав администратора ни на одном сервере</p>
                 </div>
             `;
             return;
         }
         
-        // Отображаем сервера
-        container.innerHTML = allGuilds.map(guild => `
-            <div class="server-card">
-                <div class="server-icon">
-                    ${guild.icon 
-                        ? `<img src="https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png" alt="${guild.name}">` 
-                        : guild.name.charAt(0).toUpperCase()
-                    }
+        // Отображаем только сервера с правами
+        container.innerHTML = adminGuilds.map(guild => {
+            const hasBot = botGuildIds.has(guild.id);
+            const memberCount = guild.approximate_member_count || 0;
+            
+            return `
+                <div class="server-card">
+                    <div class="server-icon">
+                        ${guild.icon 
+                            ? `<img src="https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png" alt="${guild.name}">` 
+                            : guild.name.charAt(0).toUpperCase()
+                        }
+                    </div>
+                    <div class="server-info">
+                        <div class="server-name">${guild.name}</div>
+                        <div class="server-members">👥 ${memberCount} участников</div>
+                    </div>
+                    <div class="server-actions">
+                        ${hasBot 
+                            ? `<button class="btn-primary btn-sm" onclick="window.location.href='/guild-settings?guild=${guild.id}'">
+                                <i class="fas fa-cog"></i> Управлять
+                            </button>`
+                            : `<button class="btn-secondary btn-sm" onclick="inviteToServer('${guild.id}')">
+                                <i class="fas fa-user-plus"></i> Пригласить
+                            </button>`
+                        }
+                    </div>
                 </div>
-                <div class="server-info">
-                    <div class="server-name">${guild.name}</div>
-                    <div class="server-members">👥 ${guild.approximate_member_count || 0} участников</div>
-                </div>
-                <div class="server-actions">
-                    ${guild.hasBot 
-                        ? `<button class="btn-primary btn-sm" onclick="window.location.href='/guild-settings?guild=${guild.id}'">
-                            <i class="fas fa-cog"></i> Управлять
-                        </button>`
-                        : `<button class="btn-secondary btn-sm" onclick="inviteToServer('${guild.id}')">
-                            <i class="fas fa-user-plus"></i> Пригласить
-                        </button>`
-                    }
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
         
     } catch (error) {
         console.error('Ошибка загрузки серверов:', error);
@@ -505,6 +503,17 @@ async function loadServers() {
                 </button>
             </div>
         `;
+    }
+}
+
+async function inviteToServer(guildId) {
+    try {
+        // Получаем ссылку для приглашения с правами
+        const data = await apiFetch('/api/invite-url');
+        // Открываем в новой вкладке
+        window.open(data.url, '_blank');
+    } catch (error) {
+        showToast('Ошибка получения ссылки', 'error');
     }
 }
 

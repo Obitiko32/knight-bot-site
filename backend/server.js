@@ -93,9 +93,24 @@ app.get('/api/bot-info', async (req, res) => {
     }
 });
 
+// ============================================
+// ССЫЛКА ДЛЯ ПРИГЛАШЕНИЯ С ПРАВАМИ
+// ============================================
+
 app.get('/api/invite-url', (req, res) => {
     const clientId = process.env.CLIENT_ID || '0';
-    const url = `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=8&scope=bot%20applications.commands`;
+    // Права: Administrator (0x8) + Manage Server (0x20)
+    const permissions = '8'; // Administrator
+    const url = `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=${permissions}&scope=bot%20applications.commands`;
+    res.json({ url });
+});
+
+// Ссылка для приглашения на конкретный сервер
+app.get('/api/invite-url/:guildId', (req, res) => {
+    const clientId = process.env.CLIENT_ID || '0';
+    const guildId = req.params.guildId;
+    const permissions = '8'; // Administrator
+    const url = `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=${permissions}&scope=bot%20applications.commands&guild_id=${guildId}`;
     res.json({ url });
 });
 
@@ -320,6 +335,41 @@ app.post('/api/guilds/:guildId/unmute', isAuthenticated, (req, res) => {
 
 const frontendPath = path.join(__dirname, '..', 'frontend');
 app.use(express.static(frontendPath));
+
+// ============================================
+// ПОЛУЧЕНИЕ СЕРВЕРОВ С ПРОВЕРКОЙ ПРАВ
+// ============================================
+
+app.get('/api/user-guilds', isAuthenticated, (req, res) => {
+    const guilds = req.user.guilds || [];
+    
+    // Фильтруем только сервера с правами администратора
+    const adminGuilds = guilds.filter(g => (g.permissions & 0x8) === 0x8);
+    
+    res.json(adminGuilds);
+});
+
+// ============================================
+// ПОЛУЧЕНИЕ СЕРВЕРОВ ДЛЯ ПРИГЛАШЕНИЯ (только где есть права)
+// ============================================
+
+app.get('/api/inviteable-guilds', isAuthenticated, (req, res) => {
+    const guilds = req.user.guilds || [];
+    
+    // Только сервера с правами администратора
+    const adminGuilds = guilds.filter(g => (g.permissions & 0x8) === 0x8);
+    
+    // Форматируем для отображения
+    const result = adminGuilds.map(g => ({
+        id: g.id,
+        name: g.name,
+        icon: g.icon,
+        member_count: g.approximate_member_count || 0,
+        hasBot: false // будет проверяться отдельно
+    }));
+    
+    res.json(result);
+});
 
 // ============================================
 // СТРАНИЦЫ
