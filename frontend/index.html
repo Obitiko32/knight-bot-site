@@ -7,17 +7,21 @@
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
+        <!-- ШАПКА -->
         <header>
             <a href="/" class="logo">
                 <i class="fas fa-helmet-battle"></i>
                 <span>Knight Bot</span>
             </a>
             <nav>
-                <!-- Кнопка "Добавить бота" УБРАНА из меню -->
+                <a href="/" class="active">Главная</a>
+                <a href="/servers">Сервера</a>
+                <a href="/commands">Команды</a>
+                <a href="/leaderboard">Рейтинг</a>
                 <div class="profile-container" id="profileContainer">
                     <button class="profile-btn" id="profileBtn">
                         <img class="avatar" id="profileAvatar" src="" alt="Avatar">
@@ -36,12 +40,6 @@
                             <i class="fas fa-moon"></i> Тема
                             <span class="badge" id="themeBadge">Светлая</span>
                         </button>
-                        <button class="dropdown-item" id="dropdownCommands">
-                            <i class="fas fa-list"></i> Команды
-                        </button>
-                        <button class="dropdown-item" id="dropdownLeaderboard">
-                            <i class="fas fa-trophy"></i> Рейтинг
-                        </button>
                         <div class="dropdown-divider"></div>
                         <button class="dropdown-item danger" id="dropdownLogout">
                             <i class="fas fa-sign-out-alt"></i> Выйти
@@ -51,15 +49,17 @@
             </nav>
         </header>
 
-        <!-- ===== ГЕРОЙ ===== -->
+        <!-- ГЕРОЙ -->
         <section class="hero">
             <div class="hero-content">
-                <span class="badge">⚔️ Рыцарь Discord</span>
+                <div class="hero-badge">
+                    <i class="fas fa-shield-halved"></i> Рыцарь Discord
+                </div>
                 <h1>Управляй своим <br><span class="highlight">сообществом</span> с лёгкостью</h1>
                 <p>Автоматические роли, защита от спама, статистика и гибкие настройки — всё под контролем твоего рыцаря.</p>
                 <div class="hero-buttons">
                     <a href="#" class="btn-primary btn-large" id="heroInviteBtn">
-                        <i class="fas fa-plus"></i> Добавить бота
+                        <i class="fas fa-plus"></i> Мои сервера
                     </a>
                     <a href="#features" class="btn-secondary btn-large">
                         <i class="fas fa-chevron-down"></i> Возможности
@@ -67,14 +67,14 @@
                 </div>
             </div>
             <div class="hero-image">
-                <div class="shield-icon">
+                <div class="hero-icon">
                     <i class="fas fa-helmet-battle"></i>
                 </div>
             </div>
         </section>
 
-        <!-- ===== СТАТИСТИКА ===== -->
-        <section class="stats-banner">
+        <!-- СТАТИСТИКА -->
+        <section class="stats-section">
             <div class="stats-grid">
                 <div class="stat-item">
                     <div class="stat-number" id="statGuilds">0</div>
@@ -89,16 +89,16 @@
                     <div class="stat-label">Команд</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number" id="statUptime">24/7</div>
+                    <div class="stat-number">24/7</div>
                     <div class="stat-label">Доступность</div>
                 </div>
             </div>
         </section>
 
-        <!-- ===== ФУНКЦИИ ===== -->
+        <!-- ВОЗМОЖНОСТИ -->
         <section id="features" class="features">
             <h2>Рыцарские возможности</h2>
-            <p class="subtitle">Всё, что нужно для управления твоим королевством</p>
+            <p class="features-subtitle">Всё, что нужно для управления твоим королевством</p>
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon"><i class="fas fa-crown"></i></div>
@@ -133,36 +133,36 @@
             </div>
         </section>
 
-        <!-- ===== ПОЧЕМУ МЫ ===== -->
-        <section class="why-us">
+        <!-- ПОЧЕМУ МЫ -->
+        <section class="why-section">
             <h2>Почему Knight Bot?</h2>
             <div class="why-grid">
                 <div class="why-item">
-                    <i class="fas fa-bolt"></i>
+                    <div class="why-icon"><i class="fas fa-bolt"></i></div>
                     <h3>Быстро</h3>
                     <p>Мгновенная реакция на команды и события на сервере.</p>
                 </div>
                 <div class="why-item">
-                    <i class="fas fa-shield"></i>
+                    <div class="why-icon"><i class="fas fa-shield"></i></div>
                     <h3>Надёжно</h3>
                     <p>Работает 24/7 без сбоев и задержек.</p>
                 </div>
                 <div class="why-item">
-                    <i class="fas fa-puzzle-piece"></i>
+                    <div class="why-icon"><i class="fas fa-puzzle-piece"></i></div>
                     <h3>Гибко</h3>
                     <p>Настраивай всё под свой сервер: роли, пороги, команды.</p>
                 </div>
                 <div class="why-item">
-                    <i class="fas fa-heart"></i>
+                    <div class="why-icon"><i class="fas fa-heart"></i></div>
                     <h3>С любовью</h3>
                     <p>Сделано с рыцарской честью для твоего сообщества.</p>
                 </div>
             </div>
         </section>
 
-        <!-- ===== ПРИЗЫВ К ДЕЙСТВИЮ ===== -->
+        <!-- ПРИЗЫВ К ДЕЙСТВИЮ -->
         <section class="cta-section">
-            <div class="cta-content">
+            <div class="cta-box">
                 <h2>Готов начать?</h2>
                 <p>Добавь Knight Bot на свой сервер и начни управлять сообществом уже сегодня.</p>
                 <a href="#" class="btn-primary btn-large" id="ctaInviteBtn">
@@ -171,6 +171,7 @@
             </div>
         </section>
 
+        <!-- ФУТЕР -->
         <footer>
             <p>Knight Bot — <span class="heart">❤️</span> Сделано с рыцарской честью для Discord</p>
         </footer>
