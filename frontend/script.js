@@ -437,14 +437,20 @@ async function loadServers() {
             return;
         }
         
-        // Получаем ВСЕ сервера пользователя (из Discord)
+        // Получаем ВСЕ сервера пользователя (из Discord) с правами
         const userGuildsResponse = await fetch('/api/user-guilds', { credentials: 'include' });
         const userGuilds = await userGuildsResponse.json();
         
         // Получаем сервера, где есть бот
         const botGuildsResponse = await fetch('/api/bot-guilds', { credentials: 'include' });
-        const botGuilds = await botGuildsResponse.json();
-        const botGuildIds = new Set(botGuilds.map(g => g.id));
+        let botGuilds = [];
+        let botGuildIds = new Set();
+        
+        if (botGuildsResponse.ok) {
+            botGuilds = await botGuildsResponse.json();
+            botGuildIds = new Set(botGuilds.map(g => g.id));
+            console.log('🔍 Бот на серверах:', botGuildIds);
+        }
         
         // Фильтруем сервера: только где есть права администратора (0x8)
         const adminGuilds = userGuilds.filter(g => (g.permissions & 0x8) === 0x8);
@@ -460,10 +466,14 @@ async function loadServers() {
             return;
         }
         
-        // Отображаем только сервера с правами
+        // Отображаем сервера
         container.innerHTML = adminGuilds.map(guild => {
+            // Проверяем, есть ли бот на этом сервере
             const hasBot = botGuildIds.has(guild.id);
             const memberCount = guild.approximate_member_count || 0;
+            
+            // Для отладки
+            console.log(`🟢 ${guild.name}: hasBot = ${hasBot}, ID = ${guild.id}`);
             
             return `
                 <div class="server-card">
@@ -503,6 +513,42 @@ async function loadServers() {
                 </button>
             </div>
         `;
+    }
+}
+
+// ============================================
+// СЕРВЕРА, ГДЕ ЕСТЬ БОТ
+// ============================================
+
+app.get('/api/bot-guilds', isAuthenticated, async (req, res) => {
+    try {
+        if (!BOT_TOKEN) {
+            console.log('⚠️ BOT_TOKEN не найден');
+            return res.json([]);
+        }
+        
+        console.log('🔍 Запрос к Discord API для получения серверов бота...');
+        
+        const response = await axios.get('https://discord.com/api/v10/users/@me/guilds', {
+            headers: {
+                'Authorization': `Bot ${BOT_TOKEN}`
+            }
+        });
+        
+        console.log(`✅ Бот на ${response.data.length} серверах`);
+        res.json(response.data);
+    } catch (error) {
+        console.error('❌ Ошибка получения серверов бота:', error.message);
+        res.json([]);
+    }
+});
+
+async function inviteToServer(guildId) {
+    try {
+        const data = await apiFetch('/api/invite-url');
+        window.open(data.url, '_blank');
+    } catch (error) {
+        showToast('Ошибка получения ссылки', 'error');
     }
 }
 
