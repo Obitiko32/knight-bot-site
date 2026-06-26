@@ -4,7 +4,7 @@
   "description": "Сайт для управления Discord ботом",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "python3 app.py & node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
