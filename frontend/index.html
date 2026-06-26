@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knight Bot — Управление Discord ботом</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-robot"></i>
+                <span>Knight Bot</span>
+            </div>
+            <nav>
+                <a href="/">Главная</a>
+                <a href="/dashboard">Панель</a>
+                <a href="#features">Возможности</a>
+                <a href="#invite" class="btn-primary" id="inviteBtn">
+                    <i class="fas fa-plus"></i> Добавить бота
+                </a>
+                <a href="/auth/discord" class="btn-discord" id="loginBtn">
+                    <i class="fab fa-discord"></i> Войти
+                </a>
+            </nav>
+        </header>
+
+        <section class="hero">
+            <div class="hero-content">
+                <h1>Управляй своим <span class="highlight">Discord</span> сервером</h1>
+                <p>Автоматическая выдача ролей, антиспам, статистика и многое другое</p>
+                <div class="hero-buttons">
+                    <a href="/auth/discord" class="btn-discord-large">
+                        <i class="fab fa-discord"></i> Войти через Discord
+                    </a>
+                    <a href="#invite" class="btn-secondary" id="heroInviteBtn">
+                        <i class="fas fa-plus"></i> Добавить бота
+                    </a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <i class="fas fa-robot fa-8x" style="color: #7f5af0;"></i>
+            </div>
+        </section>
+
+        <section id="features" class="features">
+            <h2>Возможности бота</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <i class="fas fa-crown"></i>
+                    <h3>Роли за сообщения</h3>
+                    <p>Автоматическая выдача ролей за активность в чате</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-shield-alt"></i>
+                    <h3>Антиспам</h3>
+                    <p>Защита от спама и автоматические муты</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-chart-bar"></i>
+                    <h3>Статистика</h3>
+                    <p>Подсчёт сообщений и топ пользователей</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-sliders-h"></i>
+                    <h3>Гибкие настройки</h3>
+                    <p>Настраивайте всё под свой сервер</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="invite" class="invite-section">
+            <h2>Добавьте бота на свой сервер</h2>
+            <p>Пригласите бота и начните управлять своим сервером прямо сейчас</p>
+            <div class="invite-box">
+                <div class="invite-info" id="botInfo">
+                    <div class="bot-avatar" id="botAvatar">🤖</div>
+                    <div>
+                        <h3 id="botName">Загрузка...</h3>
+                        <p id="botStats">Статистика загружается...</p>
+                    </div>
+                </div>
+                <a href="#" id="inviteLink" class="btn-invite">
+                    <i class="fas fa-plus"></i> Пригласить бота
+                </a>
+            </div>
+        </section>
+
+        <footer>
+            <p>© 2024 Knight Bot. Все права защищены.</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
