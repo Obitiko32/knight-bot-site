@@ -1,151 +1,219 @@
 // ============================================
-// ГЛАВНАЯ СТРАНИЦА
+// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 // ============================================
 
-async function loadBotInfo() {
+let currentUser = null;
+let currentGuilds = [];
+let currentTheme = localStorage.getItem('knight-theme') || 'light';
+let selectedGuildId = null;
+
+// ============================================
+// ТЕМА
+// ============================================
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('knight-theme', theme);
+    currentTheme = theme;
+    
+    const badge = document.getElementById('themeBadge');
+    if (badge) {
+        badge.textContent = theme === 'dark' ? 'Тёмная' : 'Светлая';
+    }
+    
+    const icon = document.querySelector('#dropdownTheme i');
+    if (icon) {
+        icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+}
+
+function toggleTheme() {
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    applyTheme(newTheme);
+    showToast(newTheme === 'dark' ? '🌙 Тёмная тема' : '☀️ Светлая тема', 'info');
+}
+
+// ============================================
+// ПРОФИЛЬ
+// ============================================
+
+async function loadProfile() {
     try {
-        const response = await fetch('/api/bot-info');
+        const response = await fetch('/api/me', { credentials: 'include' });
         if (response.ok) {
-            const data = await response.json();
-            const heroTitle = document.querySelector('.hero-content h1');
-            if (heroTitle) {
-                heroTitle.innerHTML = 
-                    `Управляй сервером <br>с <span class="highlight">${data.username || 'Knight Bot'}</span>`;
+            currentUser = await response.json();
+            
+            const avatar = document.getElementById('profileAvatar');
+            const name = document.getElementById('profileName');
+            const dropdownName = document.getElementById('dropdownUserName');
+            const dropdownId = document.getElementById('dropdownUserId');
+            
+            if (avatar) {
+                avatar.src = currentUser.avatar 
+                    ? `https://cdn.discordapp.com/avatars/${currentUser.id}/${currentUser.avatar}.png` 
+                    : 'https://cdn.discordapp.com/embed/avatars/0.png';
             }
-        }
-    } catch (error) {
-        console.error('Ошибка загрузки бота:', error);
-    }
-}
-
-async function loadInviteUrl() {
-    try {
-        const response = await fetch('/api/invite-url');
-        const data = await response.json();
-        const inviteBtn = document.getElementById('inviteBtn');
-        if (inviteBtn) inviteBtn.href = data.url;
-        const heroInvite = document.getElementById('heroInviteBtn');
-        if (heroInvite) heroInvite.href = data.url;
-    } catch (error) {
-        console.error('Ошибка загрузки ссылки:', error);
-    }
-}
-
-// ===== ПРОВЕРКА АВТОРИЗАЦИИ (исправлено) =====
-async function checkAuth() {
-    try {
-        const response = await fetch('/api/me', {
-            credentials: 'include'
-        });
-        
-        if (response.ok) {
-            const user = await response.json();
-            const loginBtn = document.getElementById('loginBtn');
+            if (name) name.textContent = currentUser.username;
+            if (dropdownName) dropdownName.textContent = currentUser.username;
+            if (dropdownId) dropdownId.textContent = `ID: ${currentUser.id}`;
+            
+            // Прячем кнопку входа, показываем профиль
+            const loginBtn = document.getElementById('heroLoginBtn');
             if (loginBtn) {
-                loginBtn.innerHTML = `<i class="fas fa-user"></i> ${user.username}`;
-                loginBtn.href = '/dashboard';
-                loginBtn.classList.remove('btn-discord');
-                loginBtn.classList.add('btn-profile');
+                loginBtn.textContent = '📊 Мои сервера';
+                loginBtn.href = '/servers';
             }
+            
             return true;
         } else {
-            // Не авторизован — показываем кнопку "Войти"
-            const loginBtn = document.getElementById('loginBtn');
+            // Не авторизован
+            const avatar = document.getElementById('profileAvatar');
+            const name = document.getElementById('profileName');
+            if (avatar) avatar.src = '';
+            if (name) name.textContent = 'Войти';
+            
+            const loginBtn = document.getElementById('heroLoginBtn');
             if (loginBtn) {
-                loginBtn.innerHTML = `<i class="fab fa-discord"></i> Войти`;
+                loginBtn.textContent = 'Войти через Discord';
                 loginBtn.href = '/auth/discord';
-                loginBtn.classList.remove('btn-profile');
-                loginBtn.classList.add('btn-discord');
             }
+            
             return false;
         }
     } catch (error) {
-        console.error('Ошибка проверки авторизации:', error);
+        console.error('Ошибка загрузки профиля:', error);
         return false;
     }
 }
 
-// ===== ОБРАБОТЧИК КЛИКА ПО ПРОФИЛЮ =====
-// Если пользователь уже авторизован — переход на панель
-// Если нет — переход на вход через Discord
+// ============================================
+// ВЫПАДАЮЩЕЕ МЕНЮ ПРОФИЛЯ
+// ============================================
 
-document.addEventListener('DOMContentLoaded', async () => {
-    await loadBotInfo();
-    await loadInviteUrl();
-    await checkAuth();
+document.addEventListener('DOMContentLoaded', () => {
+    const profileBtn = document.getElementById('profileBtn');
+    const dropdown = document.getElementById('profileDropdown');
     
-    // Обработчик для кнопки профиля
-    const loginBtn = document.getElementById('loginBtn');
-    if (loginBtn) {
-        loginBtn.addEventListener('click', async (e) => {
-            // Проверяем, авторизован ли пользователь
-            const response = await fetch('/api/me', { credentials: 'include' });
-            if (response.ok) {
-                // Если авторизован — идём в панель
-                window.location.href = '/dashboard';
-            } else {
-                // Если нет — идём на вход
-                window.location.href = '/auth/discord';
-            }
-            e.preventDefault();
+    if (profileBtn && dropdown) {
+        profileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('open');
+            profileBtn.classList.toggle('active');
+        });
+        
+        document.addEventListener('click', () => {
+            dropdown.classList.remove('open');
+            profileBtn.classList.remove('active');
+        });
+        
+        dropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
     }
+    
+    // Кнопки в меню
+    const themeBtn = document.getElementById('dropdownTheme');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', toggleTheme);
+    }
+    
+    const logoutBtn = document.getElementById('dropdownLogout');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            window.location.href = '/auth/logout';
+        });
+    }
+    
+    const serversBtn = document.getElementById('dropdownServers');
+    if (serversBtn) {
+        serversBtn.addEventListener('click', () => {
+            window.location.href = '/servers';
+        });
+    }
+    
+    // Применяем тему
+    applyTheme(currentTheme);
+    
+    // Загружаем профиль
+    loadProfile();
 });
 
 // ============================================
-// ПАНЕЛЬ УПРАВЛЕНИЯ (dashboard.html)
+// TOAST / УВЕДОМЛЕНИЯ
 // ============================================
 
-let selectedGuildId = null;
+function showToast(message, type = 'info', duration = 3000) {
+    const container = document.querySelector('.toast-container') || (() => {
+        const div = document.createElement('div');
+        div.className = 'toast-container';
+        document.body.appendChild(div);
+        return div;
+    })();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        info: 'fa-info-circle'
+    };
+    toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${message}`;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
 
-async function loadDashboard() {
+// ============================================
+// API ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================================
+
+async function apiFetch(url, options = {}) {
+    const response = await fetch(url, {
+        ...options,
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers || {})
+        }
+    });
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || `Ошибка ${response.status}`);
+    }
+    return response.json();
+}
+
+// ============================================
+// СТРАНИЦА СЕРВЕРОВ
+// ============================================
+
+async function loadServers() {
+    const container = document.getElementById('serversContainer');
+    if (!container) return;
+    
     try {
-        const meResponse = await fetch('/api/me', {
-            credentials: 'include'
-        });
-        
-        if (!meResponse.ok) {
-            console.error('❌ Не авторизован, перенаправление на главную');
+        // Проверяем авторизацию
+        const user = await apiFetch('/api/me');
+        if (!user) {
             window.location.href = '/';
             return;
         }
         
-        const user = await meResponse.json();
-        const userNameEl = document.getElementById('userName');
-        const userAvatarEl = document.getElementById('userAvatar');
+        const guilds = await apiFetch('/api/my-guilds');
+        currentGuilds = guilds.guilds || [];
         
-        if (userNameEl) userNameEl.textContent = user.username;
-        if (userAvatarEl) {
-            userAvatarEl.src = user.avatar 
-                ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` 
-                : 'https://cdn.discordapp.com/embed/avatars/0.png';
-        }
-        
-        await loadGuilds();
-        
-    } catch (error) {
-        console.error('Ошибка загрузки панели:', error);
-        window.location.href = '/';
-    }
-}
-
-async function loadGuilds() {
-    try {
-        const response = await fetch('/api/my-guilds', {
-            credentials: 'include'
-        });
-        const data = await response.json();
-        
-        const container = document.getElementById('guildsList');
-        if (!container) return;
-        
-        if (!data.guilds || data.guilds.length === 0) {
+        if (currentGuilds.length === 0) {
             container.innerHTML = `
-                <div style="text-align: center; padding: 20px 0;">
-                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">
-                        🛡️ Бот не добавлен<br>ни на один сервер
-                    </p>
-                    <a href="/api/invite-url" class="btn-primary" style="display: inline-block; padding: 8px 20px; border-radius: 10px; text-decoration: none; color: white; font-size: 13px;">
+                <div class="empty-state" style="grid-column: 1/-1;">
+                    <i class="fas fa-castle"></i>
+                    <h3>Нет серверов</h3>
+                    <p>Knight Bot не добавлен ни на один ваш сервер</p>
+                    <a href="/api/invite-url" class="btn-primary" style="margin-top: 16px; display: inline-block;">
                         <i class="fas fa-plus"></i> Пригласить бота
                     </a>
                 </div>
@@ -153,95 +221,495 @@ async function loadGuilds() {
             return;
         }
         
-        container.innerHTML = data.guilds.map(guild => `
-            <div class="guild-item" data-guild-id="${guild.id}" onclick="selectGuild('${guild.id}')">
-                <div class="guild-icon">
+        container.innerHTML = currentGuilds.map(guild => `
+            <div class="server-card" onclick="selectServer('${guild.id}')">
+                <div class="server-icon">
                     ${guild.icon 
                         ? `<img src="https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png" alt="${guild.name}">` 
                         : guild.name.charAt(0).toUpperCase()
                     }
                 </div>
-                <span class="guild-name">${guild.name}</span>
+                <div class="server-name">${guild.name}</div>
+                <div class="server-members">👥 ${guild.member_count || 0} участников</div>
+                <div class="server-actions">
+                    <button class="btn-primary btn-sm" onclick="event.stopPropagation(); manageServer('${guild.id}')">
+                        <i class="fas fa-cog"></i> Управлять
+                    </button>
+                    <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); inviteToServer('${guild.id}')">
+                        <i class="fas fa-user-plus"></i> Пригласить
+                    </button>
+                </div>
             </div>
         `).join('');
         
+        // Фильтр поиска
+        const searchInput = document.getElementById('serverSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.toLowerCase();
+                document.querySelectorAll('.server-card').forEach(card => {
+                    const name = card.querySelector('.server-name')?.textContent?.toLowerCase() || '';
+                    card.style.display = name.includes(query) ? '' : 'none';
+                });
+            });
+        }
+        
     } catch (error) {
         console.error('Ошибка загрузки серверов:', error);
-        if (container) {
-            container.innerHTML = `<p style="color: var(--danger); font-size: 14px;">❌ Ошибка загрузки</p>`;
-        }
-    }
-}
-
-async function selectGuild(guildId) {
-    selectedGuildId = guildId;
-    
-    document.querySelectorAll('.guild-item').forEach(el => {
-        el.classList.remove('active');
-        if (el.dataset.guildId === guildId) {
-            el.classList.add('active');
-        }
-    });
-    
-    try {
-        const response = await fetch(`/api/guilds/${guildId}`, {
-            credentials: 'include'
-        });
-        if (!response.ok) throw new Error('Ошибка загрузки');
-        
-        const data = await response.json();
-        
-        const main = document.getElementById('guildDashboard');
-        if (!main) return;
-        
-        main.innerHTML = `
-            <div class="card">
-                <h3><i class="fas fa-crown"></i> ${data.guild.name}</h3>
-                <div class="stat-grid">
-                    <div class="stat-item">
-                        <div class="number">${data.members.length}</div>
-                        <div class="label">👥 Участников</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="number">${data.channels.length}</div>
-                        <div class="label">📝 Каналов</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="number">${data.roles.length}</div>
-                        <div class="label">🎭 Ролей</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <h3><i class="fas fa-users"></i> Участники (${data.members.length})</h3>
-                <div style="max-height: 300px; overflow-y: auto;">
-                    ${data.members.slice(0, 50).map(m => `
-                        <div class="member-item">
-                            <span class="name">${m.user.username}#${m.user.discriminator}</span>
-                            <span class="id">${m.user.id}</span>
-                        </div>
-                    `).join('')}
-                    ${data.members.length > 50 ? `<p style="color: var(--text-secondary); font-size: 13px; padding: 8px 0;">... и ещё ${data.members.length - 50} участников</p>` : ''}
-                </div>
-            </div>
-        `;
-        
-    } catch (error) {
-        console.error('Ошибка загрузки сервера:', error);
-        const main = document.getElementById('guildDashboard');
-        if (main) {
-            main.innerHTML = `
-                <div class="card">
-                    <h3><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Ошибка</h3>
-                    <p style="color: var(--danger);">Не удалось загрузить данные сервера</p>
+        if (error.message.includes('Не авторизован')) {
+            window.location.href = '/';
+        } else {
+            container.innerHTML = `
+                <div class="empty-state" style="grid-column: 1/-1;">
+                    <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
+                    <h3>Ошибка загрузки</h3>
+                    <p>${error.message}</p>
                 </div>
             `;
         }
     }
 }
 
-// Запуск панели
-if (document.getElementById('guildsList')) {
-    document.addEventListener('DOMContentLoaded', loadDashboard);
+function selectServer(guildId) {
+    selectedGuildId = guildId;
+    window.location.href = `/moderation?guild=${guildId}`;
 }
+
+function manageServer(guildId) {
+    window.location.href = `/moderation?guild=${guildId}`;
+}
+
+async function inviteToServer(guildId) {
+    try {
+        const data = await apiFetch('/api/invite-url');
+        window.open(data.url, '_blank');
+    } catch (error) {
+        showToast('Ошибка получения ссылки', 'error');
+    }
+}
+
+// ============================================
+// СТРАНИЦА ЛИДЕРБОРДА
+// ============================================
+
+async function loadLeaderboard() {
+    const container = document.getElementById('leaderboardContainer');
+    const select = document.getElementById('guildSelect');
+    const btn = document.getElementById('loadLeaderboardBtn');
+    
+    if (!container || !select) return;
+    
+    try {
+        // Загружаем сервера
+        const guilds = await apiFetch('/api/my-guilds');
+        const guildList = guilds.guilds || [];
+        
+        select.innerHTML = '<option value="">Выберите сервер</option>' + 
+            guildList.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+        
+        btn.addEventListener('click', async () => {
+            const guildId = select.value;
+            if (!guildId) {
+                showToast('Выберите сервер', 'error');
+                return;
+            }
+            
+            container.innerHTML = '<div class="loading-spinner" style="margin: 40px auto; display: block;"></div>';
+            
+            try {
+                const data = await apiFetch(`/api/guilds/${guildId}/leaderboard`);
+                
+                if (data.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-trophy"></i>
+                            <h3>Нет данных</h3>
+                            <p>Пока нет сообщений для отображения</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <table class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Пользователь</th>
+                                <th>Сообщений</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.map((user, index) => {
+                                const rank = index + 1;
+                                let rankClass = '';
+                                let medal = '';
+                                if (rank === 1) { rankClass = 'gold'; medal = '👑'; }
+                                else if (rank === 2) { rankClass = 'silver'; medal = '🥈'; }
+                                else if (rank === 3) { rankClass = 'bronze'; medal = '🥉'; }
+                                return `
+                                    <tr>
+                                        <td class="rank ${rankClass}">${medal || rank}</td>
+                                        <td>
+                                            <div class="user-cell">
+                                                <img class="avatar-sm" src="${user.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" alt="${user.display_name}">
+                                                ${user.display_name || user.username}
+                                            </div>
+                                        </td>
+                                        <td class="messages">${user.messages.toLocaleString()}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
+                        <h3>Ошибка</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+        
+    } catch (error) {
+        console.error('Ошибка загрузки лидерборда:', error);
+    }
+}
+
+// ============================================
+// СТРАНИЦА МОДЕРАЦИИ
+// ============================================
+
+async function loadModeration() {
+    const container = document.getElementById('moderationContainer');
+    const select = document.getElementById('modGuildSelect');
+    const btn = document.getElementById('loadModerationBtn');
+    
+    if (!container || !select) return;
+    
+    try {
+        const guilds = await apiFetch('/api/my-guilds');
+        const guildList = guilds.guilds || [];
+        
+        select.innerHTML = '<option value="">Выберите сервер</option>' + 
+            guildList.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+        
+        // Проверяем параметр URL
+        const params = new URLSearchParams(window.location.search);
+        const guildParam = params.get('guild');
+        if (guildParam) {
+            select.value = guildParam;
+            loadModerationData(guildParam);
+        }
+        
+        btn.addEventListener('click', () => {
+            const guildId = select.value;
+            if (!guildId) {
+                showToast('Выберите сервер', 'error');
+                return;
+            }
+            loadModerationData(guildId);
+        });
+        
+    } catch (error) {
+        console.error('Ошибка загрузки модерации:', error);
+    }
+}
+
+async function loadModerationData(guildId) {
+    const container = document.getElementById('moderationContainer');
+    
+    container.innerHTML = '<div class="loading-spinner" style="margin: 40px auto; display: block;"></div>';
+    
+    try {
+        const [members, roles] = await Promise.all([
+            apiFetch(`/api/guilds/${guildId}/members`),
+            apiFetch(`/api/guilds/${guildId}/roles`)
+        ]);
+        
+        container.innerHTML = `
+            <div class="moderation-panel">
+                <div class="panel-card">
+                    <h3><i class="fas fa-users"></i> Участники</h3>
+                    ${members.slice(0, 20).map(m => `
+                        <div class="user-item">
+                            <div class="user-info">
+                                <img class="avatar-sm" src="${m.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" alt="${m.display_name}">
+                                <span class="username">${m.display_name || m.username}</span>
+                            </div>
+                            <div class="user-actions">
+                                <button class="btn-danger btn-sm" onclick="muteUser('${guildId}', '${m.id}')">
+                                    <i class="fas fa-microphone-slash"></i>
+                                </button>
+                                <button class="btn-success btn-sm" onclick="unmuteUser('${guildId}', '${m.id}')">
+                                    <i class="fas fa-microphone"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                    ${members.length > 20 ? `<p style="color: var(--text-muted); font-size: 13px; margin-top: 12px;">... и ещё ${members.length - 20} участников</p>` : ''}
+                </div>
+                
+                <div class="panel-card">
+                    <h3><i class="fas fa-crown"></i> Роли (${roles.length})</h3>
+                    ${roles.slice(0, 15).map(r => `
+                        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 14px;">
+                            <span style="display: flex; align-items: center; gap: 8px;">
+                                <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #${r.color.toString(16).padStart(6, '0')};"></span>
+                                ${r.name}
+                            </span>
+                            <span style="color: var(--text-muted); font-size: 12px;">${r.id}</span>
+                        </div>
+                    `).join('')}
+                    ${roles.length > 15 ? `<p style="color: var(--text-muted); font-size: 13px; margin-top: 8px;">... и ещё ${roles.length - 15} ролей</p>` : ''}
+                </div>
+            </div>
+        `;
+        
+    } catch (error) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
+                <h3>Ошибка</h3>
+                <p>${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+async function muteUser(guildId, userId) {
+    try {
+        await apiFetch(`/api/guilds/${guildId}/mute`, {
+            method: 'POST',
+            body: JSON.stringify({ user_id: userId, duration: 600, reason: 'Мут через сайт' })
+        });
+        showToast('✅ Пользователь заглушен на 10 минут', 'success');
+        loadModerationData(guildId);
+    } catch (error) {
+        showToast('❌ Ошибка: ' + error.message, 'error');
+    }
+}
+
+async function unmuteUser(guildId, userId) {
+    try {
+        await apiFetch(`/api/guilds/${guildId}/unmute`, {
+            method: 'POST',
+            body: JSON.stringify({ user_id: userId })
+        });
+        showToast('✅ Пользователь размучен', 'success');
+        loadModerationData(guildId);
+    } catch (error) {
+        showToast('❌ Ошибка: ' + error.message, 'error');
+    }
+}
+
+// ============================================
+// СТРАНИЦА КОМАНД
+// ============================================
+
+function loadCommands() {
+    const container = document.getElementById('commandsContainer');
+    if (!container) return;
+    
+    const commands = {
+        '👑 Основные': [
+            { name: '!stats', desc: 'Показать вашу статистику (сообщения, роль, прогресс)', admin: false },
+            { name: '!leaderboard / !топ', desc: 'Топ пользователей по сообщениям', admin: false },
+            { name: '!help', desc: 'Показать список всех команд', admin: false },
+        ],
+        '🛡️ Модерация': [
+            { name: '!mute @user [сек] [причина]', desc: 'Заглушить пользователя', admin: true },
+            { name: '!unmute @user', desc: 'Снять мут с пользователя', admin: true },
+            { name: '!clear [количество]', desc: 'Очистить чат (до 100 сообщений)', admin: true },
+            { name: '!roles / !роли', desc: 'Показать все роли на сервере', admin: true },
+        ],
+        '⚙️ Администрирование': [
+            { name: '!setstats @user [число]', desc: 'Установить счётчик сообщений пользователю', admin: true },
+            { name: '!addstats @user [число]', desc: 'Добавить или отнять сообщения', admin: true },
+            { name: '!resetstats @user', desc: 'Сбросить счётчик пользователя', admin: true },
+            { name: '!syncroles', desc: 'Синхронизировать роли всех участников', admin: true },
+            { name: '!antispam [лимит] [сек]', desc: 'Настроить антиспам', admin: true },
+            { name: '!mute_duration [сек]', desc: 'Установить длительность мута', admin: true },
+        ],
+        '🎯 Дополнительные': [
+            { name: '!stats @user', desc: 'Показать статистику другого пользователя', admin: false },
+        ]
+    };
+    
+    container.innerHTML = Object.entries(commands).map(([category, cmds]) => `
+        <div class="commands-category">
+            <div class="category-title">
+                ${category}
+                ${category.includes('Модерация') || category.includes('Администрирование') 
+                    ? '<span class="shield" title="Требуются права администратора"><i class="fas fa-shield-halved"></i></span>' 
+                    : ''}
+            </div>
+            <div class="commands-grid">
+                ${cmds.map(cmd => `
+                    <div class="command-card">
+                        <span class="cmd-name">${cmd.name}</span>
+                        <span class="cmd-desc">${cmd.desc}</span>
+                        ${cmd.admin 
+                            ? '<span class="cmd-badge admin" title="Требуются права администратора"><i class="fas fa-shield-halved"></i> Админ</span>' 
+                            : '<span class="cmd-badge">Все</span>'
+                        }
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+// ============================================
+// СТРАНИЦА НАСТРОЙКИ РОЛЕЙ
+// ============================================
+
+async function loadRolesSettings() {
+    const container = document.getElementById('rolesContainer');
+    const select = document.getElementById('rolesGuildSelect');
+    const loadBtn = document.getElementById('loadRolesBtn');
+    const saveBtn = document.getElementById('saveRolesBtn');
+    
+    if (!container || !select) return;
+    
+    let currentThresholds = {};
+    let currentRoles = [];
+    let currentGuildId = null;
+    
+    try {
+        const guilds = await apiFetch('/api/my-guilds');
+        const guildList = guilds.guilds || [];
+        
+        select.innerHTML = '<option value="">Выберите сервер</option>' + 
+            guildList.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+        
+        loadBtn.addEventListener('click', async () => {
+            currentGuildId = select.value;
+            if (!currentGuildId) {
+                showToast('Выберите сервер', 'error');
+                return;
+            }
+            
+            container.innerHTML = '<div class="loading-spinner" style="margin: 40px auto; display: block;"></div>';
+            
+            try {
+                const [thresholds, roles] = await Promise.all([
+                    apiFetch(`/api/guilds/${currentGuildId}/thresholds`),
+                    apiFetch(`/api/guilds/${currentGuildId}/roles`)
+                ]);
+                
+                currentThresholds = thresholds;
+                currentRoles = roles;
+                
+                renderRolesSettings(container, thresholds, roles);
+                
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
+                        <h3>Ошибка</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+        
+        saveBtn.addEventListener('click', async () => {
+            if (!currentGuildId) {
+                showToast('Сначала загрузите настройки', 'error');
+                return;
+            }
+            
+            // Собираем данные с формы
+            const items = container.querySelectorAll('.role-settings-item');
+            const newThresholds = {};
+            items.forEach(item => {
+                const roleId = item.dataset.roleId;
+                const messagesInput = item.querySelector('.role-messages-input');
+                if (roleId && messagesInput) {
+                    const messages = parseInt(messagesInput.value);
+                    if (messages > 0) {
+                        newThresholds[messages] = roleId;
+                    }
+                }
+            });
+            
+            try {
+                await apiFetch(`/api/guilds/${currentGuildId}/thresholds`, {
+                    method: 'POST',
+                    body: JSON.stringify({ thresholds: newThresholds })
+                });
+                showToast('✅ Настройки сохранены!', 'success');
+                currentThresholds = newThresholds;
+            } catch (error) {
+                showToast('❌ Ошибка сохранения: ' + error.message, 'error');
+            }
+        });
+        
+    } catch (error) {
+        console.error('Ошибка загрузки настроек ролей:', error);
+    }
+}
+
+function renderRolesSettings(container, thresholds, roles) {
+    // Создаём карту ролей по ID
+    const rolesMap = {};
+    roles.forEach(r => { rolesMap[r.id] = r; });
+    
+    // Сортируем пороги
+    const sortedThresholds = Object.entries(thresholds)
+        .sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+    
+    if (sortedThresholds.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-crown"></i>
+                <h3>Нет настроенных ролей</h3>
+                <p>Добавьте роли и укажите количество сообщений для их получения</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = sortedThresholds.map(([messages, roleId]) => {
+        const role = rolesMap[roleId];
+        return `
+            <div class="role-settings-item" data-role-id="${roleId}">
+                <div class="role-info">
+                    <div class="role-color" style="background: ${role ? '#' + role.color.toString(16).padStart(6, '0') : '#888'};"></div>
+                    <span class="role-name">${role ? role.name : 'Неизвестная роль'}</span>
+                    <span class="role-id">${roleId}</span>
+                </div>
+                <div class="role-messages">
+                    <span>📨</span>
+                    <input class="role-messages-input" type="number" value="${messages}" min="1" step="100">
+                    <span>сообщений</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ============================================
+// ЗАПУСК СТРАНИЦ
+// ============================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    const path = window.location.pathname;
+    
+    if (path === '/servers' || path === '/servers.html') {
+        loadServers();
+    } else if (path === '/commands' || path === '/commands.html') {
+        loadCommands();
+    } else if (path === '/leaderboard' || path === '/leaderboard.html') {
+        loadLeaderboard();
+    } else if (path === '/moderation' || path === '/moderation.html') {
+        loadModeration();
+    } else if (path === '/roles-settings' || path === '/roles-settings.html') {
+        loadRolesSettings();
+    }
+});

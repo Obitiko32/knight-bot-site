@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройки ролей — Knight Bot</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Georgia:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/" class="logo">
+                <i class="fas fa-helmet-battle"></i>
+                <span>Knight Bot</span>
+            </a>
+            <nav>
+                <a href="/">Главная</a>
+                <a href="/servers">Сервера</a>
+                <a href="/commands">Команды</a>
+                <a href="/leaderboard">Рейтинг</a>
+                <div class="profile-container" id="profileContainer">
+                    <div class="profile-btn" id="profileBtn">
+                        <img class="avatar" id="profileAvatar" src="" alt="Avatar">
+                        <span class="name" id="profileName">Войти</span>
+                        <i class="fas fa-chevron-down chevron"></i>
+                    </div>
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <div class="dropdown-header">
+                            <div class="user-name" id="dropdownUserName">Гость</div>
+                            <div class="user-id" id="dropdownUserId">Не авторизован</div>
+                        </div>
+                        <button class="dropdown-item" id="dropdownServers">
+                            <i class="fas fa-server"></i> Мои сервера
+                        </button>
+                        <button class="dropdown-item" id="dropdownTheme">
+                            <i class="fas fa-moon"></i> Тема
+                            <span class="badge" id="themeBadge">Светлая</span>
+                        </button>
+                        <button class="dropdown-item" id="dropdownLanguage">
+                            <i class="fas fa-globe"></i> Язык
+                            <span class="badge">Русский</span>
+                        </button>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item danger" id="dropdownLogout">
+                            <i class="fas fa-sign-out-alt"></i> Выйти
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <h1 class="page-title">⚙️ Настройки ролей</h1>
+        <p class="page-subtitle">Управляйте порогами сообщений для каждой роли</p>
+
+        <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
+            <select id="rolesGuildSelect" style="padding: 10px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 14px; min-width: 200px;">
+                <option value="">Выберите сервер</option>
+            </select>
+            <button id="loadRolesBtn" class="btn-primary"><i class="fas fa-sync"></i> Загрузить</button>
+            <button id="saveRolesBtn" class="btn-success"><i class="fas fa-save"></i> Сохранить</button>
+        </div>
+
+        <div id="rolesContainer">
+            <div class="empty-state">
+                <i class="fas fa-crown"></i>
+                <h3>Выберите сервер</h3>
+                <p>Выберите сервер из списка выше, чтобы настроить роли</p>
+            </div>
+        </div>
+
+        <footer>
+            <p>Knight Bot — <span class="heart">❤️</span> Сделано с рыцарской честью для Discord</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
