@@ -82,7 +82,7 @@ async function apiFetch(url, options = {}) {
 }
 
 // ============================================
-// ПРОФИЛЬ
+// ПРОФИЛЬ И ВХОД
 // ============================================
 
 async function loadProfile() {
@@ -102,11 +102,14 @@ async function loadProfile() {
                     : 'https://cdn.discordapp.com/embed/avatars/0.png';
                 avatar.classList.add('show');
             }
-            if (name) name.textContent = currentUser.username;
+            if (name) {
+                name.textContent = currentUser.username;
+                name.style.display = 'inline';
+            }
             if (dropdownName) dropdownName.textContent = currentUser.username;
             if (dropdownId) dropdownId.textContent = `ID: ${currentUser.id}`;
             
-            // Меняем кнопку в центре на "Мои сервера"
+            // Меняем кнопку "Добавить бота" в центре на "Мои сервера"
             const heroBtn = document.getElementById('heroInviteBtn');
             if (heroBtn) {
                 heroBtn.textContent = '📊 Мои сервера';
@@ -114,20 +117,23 @@ async function loadProfile() {
                 heroBtn.className = 'btn-primary btn-large';
             }
             
-            // Меняем кнопку "Добавить бота" в шапке
-            const inviteBtn = document.getElementById('inviteBtn');
-            if (inviteBtn) {
-                inviteBtn.textContent = '📊 Мои сервера';
-                inviteBtn.href = '/servers';
+            const ctaBtn = document.getElementById('ctaInviteBtn');
+            if (ctaBtn) {
+                ctaBtn.textContent = '📊 Мои сервера';
+                ctaBtn.href = '/servers';
+                ctaBtn.className = 'btn-primary btn-large';
             }
             
             return true;
         } else {
-            // Не авторизован
+            // НЕ АВТОРИЗОВАН
             if (avatar) avatar.classList.remove('show');
-            if (name) name.textContent = 'Войти';
+            if (name) {
+                name.textContent = 'Войти';
+                name.style.display = 'inline';
+            }
             
-            // Кнопка в центре — "Добавить бота"
+            // Кнопка "Добавить бота" в центре
             const heroBtn = document.getElementById('heroInviteBtn');
             if (heroBtn) {
                 heroBtn.textContent = '➕ Добавить бота';
@@ -144,12 +150,12 @@ async function loadProfile() {
                 };
             }
             
-            // Кнопка в шапке — "Добавить бота"
-            const inviteBtn = document.getElementById('inviteBtn');
-            if (inviteBtn) {
-                inviteBtn.textContent = '➕ Добавить бота';
-                inviteBtn.href = '#';
-                inviteBtn.onclick = async (e) => {
+            const ctaBtn = document.getElementById('ctaInviteBtn');
+            if (ctaBtn) {
+                ctaBtn.textContent = '➕ Добавить бота';
+                ctaBtn.href = '#';
+                ctaBtn.className = 'btn-primary btn-large';
+                ctaBtn.onclick = async (e) => {
                     e.preventDefault();
                     try {
                         const data = await apiFetch('/api/invite-url');
@@ -169,15 +175,136 @@ async function loadProfile() {
 }
 
 // ============================================
-// КНОПКА ВЫХОДА
+// КНОПКА ВХОДА (РАБОТАЕТ!)
 // ============================================
 
-function setupLogout() {
-    const logoutBtn = document.getElementById('dropdownLogout');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            window.location.href = '/auth/logout';
+function setupLoginButton() {
+    const profileBtn = document.getElementById('profileBtn');
+    if (!profileBtn) return;
+    
+    profileBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        
+        // Проверяем, авторизован ли пользователь
+        try {
+            const response = await fetch('/api/me', { credentials: 'include' });
+            if (response.ok) {
+                // Авторизован — открываем меню
+                const dropdown = document.getElementById('profileDropdown');
+                if (dropdown) {
+                    dropdown.classList.toggle('open');
+                    profileBtn.classList.toggle('active');
+                }
+            } else {
+                // НЕ авторизован — отправляем на вход
+                window.location.href = '/auth/discord';
+            }
+        } catch (error) {
+            window.location.href = '/auth/discord';
+        }
+    });
+}
+
+// ============================================
+// ЗАПУСК ПРИ ЗАГРУЗКЕ
+// ============================================
+
+document.addEventListener('DOMContentLoaded', async () => {
+    applyTheme(currentTheme);
+    
+    // Настраиваем кнопку темы
+    const themeBtn = document.getElementById('dropdownTheme');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', toggleTheme);
+    }
+    
+    // Настраиваем выход
+    setupLogout();
+    
+    // Настраиваем кнопку входа
+    setupLoginButton();
+    
+    // Настраиваем меню (закрытие при клике вне)
+    const dropdown = document.getElementById('profileDropdown');
+    if (dropdown) {
+        dropdown.addEventListener('click', (e) => e.stopPropagation());
+    }
+    
+    document.addEventListener('click', () => {
+        if (dropdown) {
+            dropdown.classList.remove('open');
+            const btn = document.getElementById('profileBtn');
+            if (btn) btn.classList.remove('active');
+        }
+    });
+    
+    // Кнопки в меню
+    const serversBtn = document.getElementById('dropdownServers');
+    if (serversBtn) {
+        serversBtn.addEventListener('click', () => {
+            window.location.href = '/servers';
         });
+    }
+    
+    const commandsBtn = document.getElementById('dropdownCommands');
+    if (commandsBtn) {
+        commandsBtn.addEventListener('click', () => {
+            window.location.href = '/commands';
+        });
+    }
+    
+    const leaderboardBtn = document.getElementById('dropdownLeaderboard');
+    if (leaderboardBtn) {
+        leaderboardBtn.addEventListener('click', () => {
+            window.location.href = '/leaderboard';
+        });
+    }
+    
+    // Загружаем профиль
+    await loadProfile();
+    
+    // Загружаем статистику для баннера
+    loadStats();
+});
+
+// ============================================
+// СТАТИСТИКА
+// ============================================
+
+async function loadStats() {
+    try {
+        const response = await fetch('/api/bot-info');
+        if (response.ok) {
+            const data = await response.json();
+            const guildsEl = document.getElementById('statGuilds');
+            if (guildsEl) guildsEl.textContent = data.guilds || 0;
+            
+            // Пытаемся получить количество пользователей
+            try {
+                const guildsResponse = await fetch('/api/guilds');
+                if (guildsResponse.ok) {
+                    const guilds = await guildsResponse.json();
+                    let totalUsers = 0;
+                    // Загружаем участников с каждого сервера
+                    for (const guild of guilds) {
+                        try {
+                            const membersRes = await fetch(`/api/guilds/${guild.id}/members`);
+                            if (membersRes.ok) {
+                                const members = await membersRes.json();
+                                totalUsers += members.length;
+                            }
+                        } catch (e) {}
+                    }
+                    const usersEl = document.getElementById('statUsers');
+                    if (usersEl) usersEl.textContent = totalUsers || '?';
+                }
+            } catch (e) {
+                const usersEl = document.getElementById('statUsers');
+                if (usersEl) usersEl.textContent = '?';
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки статистики:', error);
     }
 }
 
