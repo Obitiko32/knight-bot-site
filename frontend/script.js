@@ -178,7 +178,7 @@ async function loadProfile() {
 }
 
 // ============================================
-// КНОПКА ВХОДА (ИСПРАВЛЕНО!)
+// КНОПКА ВХОДА (ОТДЕЛЬНАЯ ВКЛАДКА)
 // ============================================
 
 function setupLoginButton() {
@@ -203,16 +203,36 @@ function setupLoginButton() {
                     newBtn.classList.toggle('active');
                 }
             } else {
-                // НЕ авторизован — отправляем на вход
-                window.location.href = '/auth/discord';
+                // НЕ авторизован — открываем вход в маленькой вкладке
+                const width = 500;
+                const height = 650;
+                const left = (window.screen.width - width) / 2;
+                const top = (window.screen.height - height) / 2;
+                
+                const popup = window.open(
+                    '/auth/discord',
+                    'Discord Login',
+                    `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+                );
+                
+                // Проверяем, закрылось ли окно (пользователь вошёл)
+                const checkPopup = setInterval(async () => {
+                    if (popup.closed) {
+                        clearInterval(checkPopup);
+                        // Проверяем, авторизовался ли пользователь
+                        const authCheck = await fetch('/api/me', { credentials: 'include' });
+                        if (authCheck.ok) {
+                            window.location.reload();
+                        }
+                    }
+                }, 1000);
             }
         } catch (error) {
-            // Если ошибка — всё равно отправляем на вход
-            window.location.href = '/auth/discord';
+            // Если ошибка — открываем в новой вкладке
+            window.open('/auth/discord', '_blank');
         }
     });
     
-    // Обновляем ссылку на кнопку для других функций
     window.profileBtnRef = newBtn;
 }
 
@@ -323,9 +343,7 @@ async function loadStats() {
                         totalUsers += members.length;
                     }
                     
-                    // Пытаемся получить количество выполненных команд
-                    // (для этого нужен эндпоинт, который возвращает статистику команд)
-                    // Пока используем заглушку — считаем сообщения как команды
+                    // Получаем лидерборд для подсчёта команд (сообщений)
                     try {
                         const leaderboardRes = await fetch(`/api/guilds/${guild.id}/leaderboard`);
                         if (leaderboardRes.ok) {
@@ -350,7 +368,6 @@ async function loadStats() {
             const commandsEl = document.getElementById('statCommands');
             if (commandsEl) {
                 if (totalCommands > 0) {
-                    // Форматируем число (например, 1.2K, 3.5M)
                     commandsEl.textContent = formatNumber(totalCommands);
                 } else {
                     commandsEl.textContent = '0';
@@ -377,23 +394,52 @@ function formatNumber(num) {
 }
 
 // ============================================
-// СТРАНИЦА СЕРВЕРОВ
+// СТРАНИЦА СЕРВЕРОВ (ИСПРАВЛЕНА)
 // ============================================
 
 async function loadServers() {
     const container = document.getElementById('serversContainer');
     if (!container) return;
     
+    // Показываем загрузку
+    container.innerHTML = `
+        <div class="loading-container" style="grid-column: 1/-1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 0; gap: 16px;">
+            <div class="loading-spinner"></div>
+            <p style="color: var(--text-secondary);">Загрузка серверов...</p>
+        </div>
+    `;
+    
     try {
-        // Проверяем авторизацию
-        const user = await apiFetch('/api/me');
+        // Проверяем авторизацию с повторными попытками
+        let user = null;
+        let attempts = 0;
+        const maxAttempts = 5;
+        
+        while (attempts < maxAttempts && !user) {
+            try {
+                const response = await fetch('/api/me', { credentials: 'include' });
+                if (response.ok) {
+                    user = await response.json();
+                    break;
+                }
+            } catch (e) {
+                // Ждём и пробуем снова
+            }
+            attempts++;
+            if (attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+        
         if (!user) {
+            // Если не авторизован — отправляем на главную
             window.location.href = '/';
             return;
         }
         
-        const guilds = await apiFetch('/api/my-guilds');
-        const guildList = guilds.guilds || [];
+        // Загружаем сервера
+        const guildsData = await apiFetch('/api/my-guilds');
+        const guildList = guildsData.guilds || [];
         
         if (guildList.length === 0) {
             container.innerHTML = `
@@ -422,8 +468,10 @@ async function loadServers() {
             return;
         }
         
+        // Отображаем сервера с плавной анимацией
+        container.style.opacity = '0';
         container.innerHTML = guildList.map(guild => `
-            <div class="server-card" onclick="window.location.href='/moderation?guild=${guild.id}'">
+            <div class="server-card" onclick="window.location.href='/moderation?guild=${guild.id}'" style="animation: fadeInUp 0.5s ease forwards; animation-delay: ${Math.random() * 0.3}s;">
                 <div class="server-icon">
                     ${guild.icon 
                         ? `<img src="https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png" alt="${guild.name}">` 
@@ -443,6 +491,13 @@ async function loadServers() {
             </div>
         `).join('');
         
+        // Плавное появление
+        setTimeout(() => {
+            container.style.opacity = '1';
+            container.style.transition = 'opacity 0.5s ease';
+        }, 50);
+        
+        // Поиск
         const searchInput = document.getElementById('serverSearch');
         if (searchInput) {
             searchInput.addEventListener('input', () => {
@@ -464,6 +519,9 @@ async function loadServers() {
                     <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
                     <h3>Ошибка загрузки</h3>
                     <p>${error.message}</p>
+                    <button class="btn-primary" style="margin-top: 16px;" onclick="location.reload()">
+                        <i class="fas fa-sync"></i> Попробовать снова
+                    </button>
                 </div>
             `;
         }

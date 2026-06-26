@@ -435,6 +435,119 @@ nav {
 }
 
 /* ============================================
+   АНИМАЦИИ И ПЛАВНОСТИ
+   ============================================ */
+
+/* Плавное появление элементов */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Применяем анимации к элементам */
+.feature-card {
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.feature-card:nth-child(1) { animation-delay: 0.05s; }
+.feature-card:nth-child(2) { animation-delay: 0.1s; }
+.feature-card:nth-child(3) { animation-delay: 0.15s; }
+.feature-card:nth-child(4) { animation-delay: 0.2s; }
+.feature-card:nth-child(5) { animation-delay: 0.25s; }
+.feature-card:nth-child(6) { animation-delay: 0.3s; }
+
+.why-item {
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.why-item:nth-child(1) { animation-delay: 0.05s; }
+.why-item:nth-child(2) { animation-delay: 0.1s; }
+.why-item:nth-child(3) { animation-delay: 0.15s; }
+.why-item:nth-child(4) { animation-delay: 0.2s; }
+
+.stat-item {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+.stat-item:nth-child(1) { animation-delay: 0.05s; }
+.stat-item:nth-child(2) { animation-delay: 0.1s; }
+.stat-item:nth-child(3) { animation-delay: 0.15s; }
+.stat-item:nth-child(4) { animation-delay: 0.2s; }
+
+.server-card {
+    animation: fadeInUp 0.5s ease forwards;
+    opacity: 0;
+}
+
+/* Плавные переходы для всех интерактивных элементов */
+a, button, .server-card, .feature-card, .why-item, .stat-item {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Плавное появление страницы */
+.hero, .features, .why-us, .cta-section, .stats-banner {
+    animation: fadeIn 0.8s ease;
+}
+
+/* Загрузочный спиннер с анимацией */
+.loading-spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Пульсация для кнопок */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+.btn-primary:active {
+    animation: pulse 0.3s ease;
+}
+
+/* Скелетон-загрузка для серверов */
+.loading-skeleton {
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    padding: 20px;
+    animation: shimmer 1.5s ease-in-out infinite;
+    background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-card-hover) 50%, var(--bg-secondary) 75%);
+    background-size: 200% 100%;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+/* ============================================
    СТАТИСТИКА (BANNER)
    ============================================ */
 
