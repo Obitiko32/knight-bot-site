@@ -301,3 +301,7 @@ app.listen(PORT, () => {
     console.log(`✅ Сервер запущен на порту ${PORT}`);
     console.log(`🌐 Сайт: ${process.env.SITE_URL || 'http://localhost:' + PORT}`);
 });
+// Страница управления сервером
+app.get('/guild-settings', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'guild-settings.html'));
+});

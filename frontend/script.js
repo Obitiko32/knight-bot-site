@@ -7,6 +7,18 @@ let currentTheme = localStorage.getItem('knight-theme') || 'light';
 let totalCommandsExecuted = 0;
 
 // ============================================
+// ВЫБОР СЕРВЕРА (ОТКРЫТИЕ НАСТРОЕК)
+// ============================================
+
+function selectServer(guildId) {
+    window.location.href = `/guild-settings?guild=${guildId}`;
+}
+
+function manageServer(guildId) {
+    window.location.href = `/guild-settings?guild=${guildId}`;
+}
+
+// ============================================
 // ТЕМА
 // ============================================
 

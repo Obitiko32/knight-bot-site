@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление сервером — Knight Bot</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/" class="logo">
+                <i class="fas fa-helmet-battle"></i>
+                <span>Knight Bot</span>
+            </a>
+            <nav>
+                <a href="/">Главная</a>
+                <a href="/servers">Сервера</a>
+                <a href="/commands">Команды</a>
+                <a href="/leaderboard">Рейтинг</a>
+                <div class="profile-container" id="profileContainer">
+                    <div class="profile-btn" id="profileBtn">
+                        <img class="avatar" id="profileAvatar" src="" alt="Avatar">
+                        <span class="name" id="profileName">Войти</span>
+                        <i class="fas fa-chevron-down chevron"></i>
+                    </div>
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <div class="dropdown-header">
+                            <div class="user-name" id="dropdownUserName">Гость</div>
+                            <div class="user-id" id="dropdownUserId">Не авторизован</div>
+                        </div>
+                        <button class="dropdown-item" id="dropdownServers">
+                            <i class="fas fa-server"></i> Мои сервера
+                        </button>
+                        <button class="dropdown-item" id="dropdownTheme">
+                            <i class="fas fa-moon"></i> Тема
+                            <span class="badge" id="themeBadge">Светлая</span>
+                        </button>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item danger" id="dropdownLogout">
+                            <i class="fas fa-sign-out-alt"></i> Выйти
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <div class="guild-settings">
+            <!-- Заголовок -->
+            <div class="guild-header">
+                <div class="guild-header-left">
+                    <div class="guild-icon-large" id="guildIcon">⚔️</div>
+                    <div>
+                        <h1 id="guildName">Название сервера</h1>
+                        <p id="guildId">ID: 123456789</p>
+                    </div>
+                </div>
+                <a href="/servers" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i> К списку серверов
+                </a>
+            </div>
+
+            <!-- Навигация по вкладкам -->
+            <div class="guild-tabs">
+                <button class="guild-tab active" data-tab="overview">
+                    <i class="fas fa-cog"></i> Основное
+                </button>
+                <button class="guild-tab" data-tab="moderation">
+                    <i class="fas fa-shield-halved"></i> Модерация
+                </button>
+                <button class="guild-tab" data-tab="roles">
+                    <i class="fas fa-crown"></i> Роли
+                </button>
+                <button class="guild-tab" data-tab="leaderboard">
+                    <i class="fas fa-trophy"></i> Рейтинг
+                </button>
+            </div>
+
+            <!-- Вкладка: Основное -->
+            <div id="tab-overview" class="guild-tab-content active">
+                <div class="settings-card">
+                    <h3>Основные настройки</h3>
+                    <div class="settings-group">
+                        <label>Префикс команд</label>
+                        <input type="text" value="!" disabled>
+                        <small>Префикс для текстовых команд</small>
+                    </div>
+                    <div class="settings-group">
+                        <label>Язык интерфейса бота</label>
+                        <select disabled>
+                            <option>Русский</option>
+                            <option>English</option>
+                        </select>
+                    </div>
+                    <div class="settings-group">
+                        <label>Часовой пояс сервера</label>
+                        <select disabled>
+                            <option>(UTC+00:00) Greenwich Mean Time</option>
+                            <option>(UTC+03:00) Moscow</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3>Доступ и безопасность</h3>
+                    <div class="settings-group">
+                        <label>Доверенные роли Администраторов</label>
+                        <select disabled>
+                            <option>Только Владелец Сервера</option>
+                            <option>Администраторы</option>
+                        </select>
+                        <small>Все Администраторы, если не указано</small>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3>Присоединение участников</h3>
+                    <div class="settings-group">
+                        <div class="toggle-row">
+                            <span>Выдавать роль новичка</span>
+                            <label class="toggle">
+                                <input type="checkbox" checked disabled>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="toggle-row">
+                            <span>Приветственное сообщение</span>
+                            <label class="toggle">
+                                <input type="checkbox" disabled>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка: Модерация -->
+            <div id="tab-moderation" class="guild-tab-content">
+                <div class="settings-card">
+                    <h3><i class="fas fa-shield-halved"></i> Модерация</h3>
+                    <div class="settings-group">
+                        <label>Участники сервера</label>
+                        <div id="membersList" style="max-height: 300px; overflow-y: auto;">
+                            <div class="loading-spinner" style="margin: 20px auto; display: block;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка: Роли -->
+            <div id="tab-roles" class="guild-tab-content">
+                <div class="settings-card">
+                    <h3><i class="fas fa-crown"></i> Настройка ролей</h3>
+                    <p class="hint">Настройте пороги сообщений для автоматической выдачи ролей</p>
+                    <div id="rolesList"></div>
+                </div>
+            </div>
+
+            <!-- Вкладка: Рейтинг -->
+            <div id="tab-leaderboard" class="guild-tab-content">
+                <div class="settings-card">
+                    <h3><i class="fas fa-trophy"></i> Рейтинг участников</h3>
+                    <div id="leaderboardList">
+                        <div class="loading-spinner" style="margin: 20px auto; display: block;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Knight Bot — <span class="heart">❤️</span> Сделано с рыцарской честью для Discord</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

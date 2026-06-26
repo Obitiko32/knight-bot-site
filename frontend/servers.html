@@ -7,10 +7,11 @@
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Georgia:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
+        <!-- ШАПКА -->
         <header>
             <a href="/" class="logo">
                 <i class="fas fa-helmet-battle"></i>
@@ -39,10 +40,6 @@
                             <i class="fas fa-moon"></i> Тема
                             <span class="badge" id="themeBadge">Светлая</span>
                         </button>
-                        <button class="dropdown-item" id="dropdownLanguage">
-                            <i class="fas fa-globe"></i> Язык
-                            <span class="badge">Русский</span>
-                        </button>
                         <div class="dropdown-divider"></div>
                         <button class="dropdown-item danger" id="dropdownLogout">
                             <i class="fas fa-sign-out-alt"></i> Выйти
@@ -52,18 +49,24 @@
             </nav>
         </header>
 
-        <h1 class="page-title">⚔️ Выберите Discord сервер</h1>
-        <p class="page-subtitle">Управляйте своими серверами с Knight Bot</p>
+        <!-- ЗАГОЛОВОК -->
+        <div class="page-header">
+            <h1 class="page-title">Выберите Discord сервер</h1>
+            <p class="page-subtitle">Управляйте своими серверами с Knight Bot</p>
+        </div>
 
+        <!-- ПОИСК -->
         <div class="search-box">
             <i class="fas fa-search"></i>
             <input type="text" id="serverSearch" placeholder="Поиск серверов...">
         </div>
 
+        <!-- СПИСОК СЕРВЕРОВ -->
         <div id="serversContainer" class="servers-grid">
             <div class="loading-spinner" style="margin: 40px auto; display: block;"></div>
         </div>
 
+        <!-- ФУТЕР -->
         <footer>
             <p>Knight Bot — <span class="heart">❤️</span> Сделано с рыцарской честью для Discord</p>
         </footer>
