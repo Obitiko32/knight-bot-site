@@ -22,11 +22,11 @@
                 <a href="/commands">Команды</a>
                 <a href="/leaderboard">Рейтинг</a>
                 <div class="profile-container" id="profileContainer">
-                    <div class="profile-btn" id="profileBtn">
+                    <button class="profile-btn" id="profileBtn">
                         <img class="avatar" id="profileAvatar" src="" alt="Avatar">
                         <span class="name" id="profileName">Войти</span>
                         <i class="fas fa-chevron-down chevron"></i>
-                    </div>
+                    </button>
                     <div class="profile-dropdown" id="profileDropdown">
                         <div class="dropdown-header">
                             <div class="user-name" id="dropdownUserName">Гость</div>
@@ -53,11 +53,8 @@
             <p class="page-subtitle">Управляйте своими серверами с Knight Bot</p>
         </div>
 
-        <div id="serversContainer" class="servers-grid">
-            <div style="grid-column: 1/-1; text-align: center; padding: 40px;">
-                <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
-                <p style="color: var(--text-secondary);">Загрузка серверов...</p>
-            </div>
+        <div id="serversContainer" class="servers-list">
+            <div class="loading-spinner" style="margin: 40px auto; display: block;"></div>
         </div>
 
         <footer>

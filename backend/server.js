@@ -142,40 +142,41 @@ app.get('/api/me', isAuthenticated, (req, res) => {
     res.json(req.user);
 });
 
-// ===== ПОЛУЧЕНИЕ СЕРВЕРОВ ПОЛЬЗОВАТЕЛЯ =====
-app.get('/api/user-guilds', isAuthenticated, (req, res) => {
+// ===== ПОЛУЧЕНИЕ СЕРВЕРОВ ПОЛЬЗОВАТЕЛЯ С РЕАЛЬНЫМ КОЛИЧЕСТВОМ УЧАСТНИКОВ =====
+app.get('/api/user-guilds', isAuthenticated, async (req, res) => {
     try {
         const guilds = req.user.guilds || [];
         const adminGuilds = guilds.filter(g => (g.permissions & 0x8) === 0x8);
-        console.log(`✅ /api/user-guilds: ${adminGuilds.length} серверов`);
-        res.json(adminGuilds);
+        
+        // Получаем реальное количество участников для каждого сервера
+        const guildsWithMembers = await Promise.all(
+            adminGuilds.map(async (guild) => {
+                try {
+                    if (BOT_TOKEN) {
+                        const response = await axios.get(
+                            `https://discord.com/api/v10/guilds/${guild.id}`,
+                            {
+                                headers: { 'Authorization': `Bot ${BOT_TOKEN}` },
+                                timeout: 5000
+                            }
+                        );
+                        return {
+                            ...guild,
+                            approximate_member_count: response.data.approximate_member_count || 0
+                        };
+                    }
+                    return guild;
+                } catch (error) {
+                    console.warn(`⚠️ Не удалось получить участников для ${guild.name}`);
+                    return guild;
+                }
+            })
+        );
+        
+        console.log(`✅ /api/user-guilds: ${guildsWithMembers.length} серверов`);
+        res.json(guildsWithMembers);
     } catch (error) {
         console.error('❌ /api/user-guilds ошибка:', error);
-        res.json([]);
-    }
-});
-
-// ===== ПОЛУЧЕНИЕ СЕРВЕРОВ БОТА =====
-app.get('/api/bot-guilds', isAuthenticated, async (req, res) => {
-    try {
-        if (!BOT_TOKEN) {
-            console.log('⚠️ BOT_TOKEN не найден');
-            return res.json([]);
-        }
-        
-        console.log('🔍 Запрос к Discord API для получения серверов бота...');
-        
-        const response = await axios.get('https://discord.com/api/v10/users/@me/guilds', {
-            headers: {
-                'Authorization': `Bot ${BOT_TOKEN}`
-            },
-            timeout: 10000
-        });
-        
-        console.log(`✅ Бот на ${response.data.length} серверах`);
-        res.json(response.data);
-    } catch (error) {
-        console.error('❌ Ошибка получения серверов бота:', error.message);
         res.json([]);
     }
 });
