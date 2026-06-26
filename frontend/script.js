@@ -178,32 +178,29 @@ async function loadProfile() {
 }
 
 // ============================================
-// КНОПКА ВХОДА (ОТДЕЛЬНАЯ ВКЛАДКА)
+// КНОПКА ВХОДА
 // ============================================
 
 function setupLoginButton() {
     const profileBtn = document.getElementById('profileBtn');
     if (!profileBtn) return;
     
-    // Убираем все старые обработчики
     const newBtn = profileBtn.cloneNode(true);
     profileBtn.parentNode.replaceChild(newBtn, profileBtn);
     
     newBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
         
-        // Проверяем, авторизован ли пользователь
         try {
             const response = await fetch('/api/me', { credentials: 'include' });
             if (response.ok) {
-                // Авторизован — открываем меню
                 const dropdown = document.getElementById('profileDropdown');
                 if (dropdown) {
                     dropdown.classList.toggle('open');
                     newBtn.classList.toggle('active');
                 }
             } else {
-                // НЕ авторизован — открываем вход в маленькой вкладке
+                // Открываем popup
                 const width = 500;
                 const height = 650;
                 const left = (window.screen.width - width) / 2;
@@ -215,20 +212,28 @@ function setupLoginButton() {
                     `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
                 );
                 
-                // Проверяем, закрылось ли окно (пользователь вошёл)
+                // Слушаем сообщение от popup
+                const handleMessage = (event) => {
+                    if (event.data && event.data.type === 'auth-success') {
+                        window.location.reload();
+                        window.removeEventListener('message', handleMessage);
+                    }
+                };
+                window.addEventListener('message', handleMessage);
+                
+                // Проверяем закрытие окна (если пользователь закрыл вручную)
                 const checkPopup = setInterval(async () => {
                     if (popup.closed) {
                         clearInterval(checkPopup);
-                        // Проверяем, авторизовался ли пользователь
                         const authCheck = await fetch('/api/me', { credentials: 'include' });
                         if (authCheck.ok) {
                             window.location.reload();
                         }
+                        window.removeEventListener('message', handleMessage);
                     }
-                }, 1000);
+                }, 500);
             }
         } catch (error) {
-            // Если ошибка — открываем в новой вкладке
             window.open('/auth/discord', '_blank');
         }
     });

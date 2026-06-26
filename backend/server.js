@@ -137,29 +137,28 @@ app.get('/auth/discord', (req, res, next) => {
 });
 
 app.get('/auth/discord/callback',
-    passport.authenticate('discord', {
-        failureRedirect: '/',
-        successRedirect: '/dashboard',
-        failureFlash: false,
-        successFlash: false
-    }),
+    passport.authenticate('discord', { failureRedirect: '/' }),
     (req, res) => {
-        logSession(req, '✅ Успешный вход');
-        res.redirect('/dashboard');
+        // Отправляем HTML, который закроет окно и сообщит родителю
+        res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Закрытие...</title>
+            </head>
+            <body>
+                <script>
+                    if (window.opener) {
+                        window.opener.postMessage({ type: 'auth-success' }, '*');
+                    }
+                    window.close();
+                <\/script>
+            </body>
+            </html>
+        `);
     }
 );
-
-app.get('/auth/logout', (req, res) => {
-    logSession(req, 'Выход из аккаунта');
-    req.logout((err) => {
-        if (err) console.error('Ошибка выхода:', err);
-        req.session.destroy((err) => {
-            if (err) console.error('Ошибка удаления сессии:', err);
-            res.clearCookie('knightbot.sid');
-            res.redirect('/');
-        });
-    });
-});
 
 // ============================================
 // 8. ЗАЩИЩЁННЫЕ ЭНДПОИНТЫ
