@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============================================
-// СТАТИСТИКА (исправлена)
+// СТАТИСТИКА (ИСПРАВЛЕНА)
 // ============================================
 
 async function loadStats() {
@@ -352,6 +352,7 @@ async function loadStats() {
             
             for (const guild of guilds) {
                 try {
+                    // Реальные участники через API
                     const membersRes = await fetch(`/api/guilds/${guild.id}/members`);
                     if (membersRes.ok) {
                         const members = await membersRes.json();

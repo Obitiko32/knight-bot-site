@@ -211,30 +211,91 @@ app.get('/api/my-guilds', isAuthenticated, async (req, res) => {
     }
 });
 
-// ===== API ДЛЯ МОДЕРАЦИИ =====
-app.get('/api/guilds/:guildId/members', isAuthenticated, (req, res) => {
-    res.json([
-        { id: '1', username: 'Пользователь 1', display_name: 'Пользователь 1', avatar: null },
-        { id: '2', username: 'Пользователь 2', display_name: 'Пользователь 2', avatar: null },
-        { id: '3', username: 'Пользователь 3', display_name: 'Пользователь 3', avatar: null },
-        { id: '4', username: 'Admin', display_name: 'Admin', avatar: null }
-    ]);
+// ===== ПОЛУЧЕНИЕ РЕАЛЬНЫХ УЧАСТНИКОВ СЕРВЕРА =====
+// ============================================
+// API ДЛЯ МОДЕРАЦИИ (РЕАЛЬНЫЕ ДАННЫЕ)
+// ============================================
+
+// ===== ПОЛУЧЕНИЕ РЕАЛЬНЫХ УЧАСТНИКОВ =====
+app.get('/api/guilds/:guildId/members', isAuthenticated, async (req, res) => {
+    try {
+        const { guildId } = req.params;
+        
+        if (!BOT_TOKEN) {
+            return res.json([]);
+        }
+        
+        const response = await axios.get(
+            `https://discord.com/api/v10/guilds/${guildId}/members?limit=1000`,
+            {
+                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
+            }
+        );
+        
+        const members = response.data
+            .filter(m => !m.user.bot)
+            .map(m => ({
+                id: m.user.id,
+                username: m.user.username,
+                display_name: m.nick || m.user.username,
+                avatar: m.user.avatar 
+                    ? `https://cdn.discordapp.com/avatars/${m.user.id}/${m.user.avatar}.png` 
+                    : null
+            }));
+        
+        res.json(members);
+    } catch (error) {
+        console.error('Ошибка получения участников:', error.message);
+        res.json([]);
+    }
 });
 
-app.get('/api/guilds/:guildId/roles', isAuthenticated, (req, res) => {
-    res.json([
-        { id: '1', name: 'Admin', color: 0xff0000 },
-        { id: '2', name: 'Moderator', color: 0x00ff00 },
-        { id: '3', name: 'Member', color: 0x0000ff }
-    ]);
+// ===== ПОЛУЧЕНИЕ РЕАЛЬНЫХ РОЛЕЙ =====
+app.get('/api/guilds/:guildId/roles', isAuthenticated, async (req, res) => {
+    try {
+        const { guildId } = req.params;
+        
+        if (!BOT_TOKEN) {
+            return res.json([]);
+        }
+        
+        const response = await axios.get(
+            `https://discord.com/api/v10/guilds/${guildId}/roles`,
+            {
+                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
+            }
+        );
+        
+        const roles = response.data
+            .filter(r => r.name !== '@everyone')
+            .map(r => ({
+                id: r.id,
+                name: r.name,
+                color: r.color
+            }));
+        
+        res.json(roles);
+    } catch (error) {
+        console.error('Ошибка получения ролей:', error.message);
+        res.json([]);
+    }
 });
 
-app.get('/api/guilds/:guildId/leaderboard', isAuthenticated, (req, res) => {
-    res.json([
-        { id: '1', username: 'TopUser', display_name: 'Топ пользователь', messages: 5000, avatar: null },
-        { id: '2', username: 'SecondUser', display_name: 'Второй', messages: 3000, avatar: null },
-        { id: '3', username: 'ThirdUser', display_name: 'Третий', messages: 1000, avatar: null }
-    ]);
+// ===== ПОЛУЧЕНИЕ РЕАЛЬНОГО ЛИДЕРБОРДА =====
+app.get('/api/guilds/:guildId/leaderboard', isAuthenticated, async (req, res) => {
+    try {
+        const { guildId } = req.params;
+        
+        // Здесь нужна БД для хранения сообщений
+        // Пока возвращаем тестовые данные
+        res.json([
+            { id: '1', username: 'TopUser', display_name: 'Топ пользователь', messages: 5000, avatar: null },
+            { id: '2', username: 'SecondUser', display_name: 'Второй', messages: 3000, avatar: null },
+            { id: '3', username: 'ThirdUser', display_name: 'Третий', messages: 1000, avatar: null }
+        ]);
+    } catch (error) {
+        res.json([]);
+    }
 });
 
 app.get('/api/guilds/:guildId/thresholds', isAuthenticated, (req, res) => {
