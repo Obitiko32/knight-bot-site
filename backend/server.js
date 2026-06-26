@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
 const axios = require('axios');
@@ -22,13 +23,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ============================================
-// СЕССИИ (ИСПРАВЛЕНЫ)
+// СЕССИИ
 // ============================================
 
 const sessionConfig = {
     store: new FileStore({
         path: './sessions',
-        ttl: 86400, // 24 часа
+        ttl: 86400,
         retries: 0
     }),
     secret: process.env.SESSION_SECRET || 'fallback_secret_change_me',
@@ -38,7 +39,7 @@ const sessionConfig = {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         sameSite: 'lax',
-        maxAge: 1000 * 60 * 60 * 24 * 30 // 30 дней
+        maxAge: 1000 * 60 * 60 * 24 * 30
     },
     rolling: true,
     name: 'knightbot.sid'
@@ -49,12 +50,6 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use(session(sessionConfig));
-
-// Логирование сессий
-app.use((req, res, next) => {
-    console.log(`🔍 Сессия: ${req.sessionID}, Авторизован: ${req.isAuthenticated ? 'Да' : 'Нет'}`);
-    next();
-});
 
 // ============================================
 // PASSPORT
@@ -122,26 +117,32 @@ app.get('/auth/discord', passport.authenticate('discord'));
 app.get('/auth/discord/callback',
     passport.authenticate('discord', { failureRedirect: '/' }),
     (req, res) => {
-        res.send(`
-            <!DOCTYPE html>
-            <html>
-            <head><meta charset="UTF-8"><title>Закрытие...</title></head>
-            <body>
-                <script>
-                    if (window.opener) {
-                        window.opener.postMessage({ type: 'auth-success' }, '*');
-                    }
-                    window.close();
-                <\/script>
-            </body>
-            </html>
-        `);
+        req.session.save((err) => {
+            if (err) console.error('❌ Ошибка сохранения сессии:', err);
+            res.send(`
+                <!DOCTYPE html>
+                <html>
+                <head><meta charset="UTF-8"><title>Закрытие...</title></head>
+                <body>
+                    <script>
+                        if (window.opener) {
+                            window.opener.postMessage({ type: 'auth-success' }, '*');
+                        }
+                        window.close();
+                    <\/script>
+                </body>
+                </html>
+            `);
+        });
     }
 );
 
 app.get('/auth/logout', (req, res) => {
     req.logout(() => {
-        res.redirect('/');
+        req.session.destroy((err) => {
+            if (err) console.error('❌ Ошибка удаления сессии:', err);
+            res.redirect('/');
+        });
     });
 });
 
@@ -153,13 +154,11 @@ app.get('/api/me', isAuthenticated, (req, res) => {
     res.json(req.user);
 });
 
-// ===== ПОЛУЧЕНИЕ СЕРВЕРОВ ПОЛЬЗОВАТЕЛЯ С РЕАЛЬНЫМ КОЛИЧЕСТВОМ УЧАСТНИКОВ =====
 app.get('/api/user-guilds', isAuthenticated, async (req, res) => {
     try {
         const guilds = req.user.guilds || [];
         const adminGuilds = guilds.filter(g => (g.permissions & 0x8) === 0x8);
         
-        // Получаем реальное количество участников для каждого сервера
         const guildsWithMembers = await Promise.all(
             adminGuilds.map(async (guild) => {
                 try {
@@ -178,13 +177,11 @@ app.get('/api/user-guilds', isAuthenticated, async (req, res) => {
                     }
                     return guild;
                 } catch (error) {
-                    console.warn(`⚠️ Не удалось получить участников для ${guild.name}`);
                     return guild;
                 }
             })
         );
         
-        console.log(`✅ /api/user-guilds: ${guildsWithMembers.length} серверов`);
         res.json(guildsWithMembers);
     } catch (error) {
         console.error('❌ /api/user-guilds ошибка:', error);
@@ -192,7 +189,24 @@ app.get('/api/user-guilds', isAuthenticated, async (req, res) => {
     }
 });
 
-// ===== ПОЛУЧЕНИЕ ИНФОРМАЦИИ О СЕРВЕРЕ =====
+app.get('/api/bot-guilds', isAuthenticated, async (req, res) => {
+    try {
+        if (!BOT_TOKEN) {
+            return res.json([]);
+        }
+        
+        const response = await axios.get('https://discord.com/api/v10/users/@me/guilds', {
+            headers: { 'Authorization': `Bot ${BOT_TOKEN}` },
+            timeout: 10000
+        });
+        
+        res.json(response.data);
+    } catch (error) {
+        console.error('❌ Ошибка получения серверов бота:', error.message);
+        res.json([]);
+    }
+});
+
 app.get('/api/guilds/:guildId', isAuthenticated, async (req, res) => {
     try {
         const { guildId } = req.params;
@@ -251,7 +265,6 @@ app.get('/api/guilds/:guildId', isAuthenticated, async (req, res) => {
     }
 });
 
-// ===== ПОЛУЧЕНИЕ УЧАСТНИКОВ =====
 app.get('/api/guilds/:guildId/members', isAuthenticated, async (req, res) => {
     try {
         const { guildId } = req.params;
@@ -286,7 +299,6 @@ app.get('/api/guilds/:guildId/members', isAuthenticated, async (req, res) => {
     }
 });
 
-// ===== ПОЛУЧЕНИЕ РОЛЕЙ =====
 app.get('/api/guilds/:guildId/roles', isAuthenticated, async (req, res) => {
     try {
         const { guildId } = req.params;
@@ -318,7 +330,6 @@ app.get('/api/guilds/:guildId/roles', isAuthenticated, async (req, res) => {
     }
 });
 
-// ===== ЛИДЕРБОРД (заглушка) =====
 app.get('/api/guilds/:guildId/leaderboard', isAuthenticated, (req, res) => {
     res.json([
         { id: '1', username: 'TopUser', display_name: 'Топ пользователь', messages: 5000, avatar: null },
@@ -327,7 +338,6 @@ app.get('/api/guilds/:guildId/leaderboard', isAuthenticated, (req, res) => {
     ]);
 });
 
-// ===== ПОРОГИ РОЛЕЙ (заглушка) =====
 app.get('/api/guilds/:guildId/thresholds', isAuthenticated, (req, res) => {
     res.json({
         1000: 'role_1',
