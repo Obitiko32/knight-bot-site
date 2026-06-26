@@ -398,98 +398,72 @@ function formatNumber(num) {
 }
 
 // ============================================
-// СТРАНИЦА СЕРВЕРОВ (С ТАЙМАУТОМ)
+// СТРАНИЦА СЕРВЕРОВ (УПРОЩЁННАЯ ВЕРСИЯ)
 // ============================================
 
 async function loadServers() {
     const container = document.getElementById('serversContainer');
     if (!container) return;
     
+    console.log('🔍 Загрузка серверов...');
+    
     container.innerHTML = `
-        <div class="loading-container" style="grid-column: 1/-1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 0; gap: 16px;">
-            <div class="loading-spinner"></div>
+        <div style="grid-column: 1/-1; text-align: center; padding: 40px;">
+            <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
             <p style="color: var(--text-secondary);">Загрузка серверов...</p>
         </div>
     `;
     
     try {
-        // Проверяем авторизацию с таймаутом
-        let user = null;
-        let attempts = 0;
-        const maxAttempts = 3;
+        // 1. Проверяем авторизацию
+        console.log('📡 Проверка авторизации...');
+        const meResponse = await fetch('/api/me', { credentials: 'include' });
+        console.log('📡 /api/me статус:', meResponse.status);
         
-        while (attempts < maxAttempts && !user) {
-            try {
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 5000);
-                
-                const response = await fetch('/api/me', { 
-                    credentials: 'include',
-                    signal: controller.signal
-                });
-                clearTimeout(timeout);
-                
-                if (response.ok) {
-                    user = await response.json();
-                    break;
-                }
-            } catch (e) {
-                console.log(`⚠️ Попытка ${attempts + 1} не удалась`);
-            }
-            attempts++;
-            if (attempts < maxAttempts) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
-        }
-        
-        if (!user) {
+        if (!meResponse.ok) {
+            console.log('❌ Не авторизован, перенаправление...');
             window.location.href = '/';
             return;
         }
         
-        // Получаем сервера пользователя с таймаутом
+        const user = await meResponse.json();
+        console.log('✅ Авторизован как:', user.username);
+        
+        // 2. Получаем сервера пользователя
+        console.log('📡 Запрос /api/user-guilds...');
+        const userGuildsResponse = await fetch('/api/user-guilds', { credentials: 'include' });
+        console.log('📡 /api/user-guilds статус:', userGuildsResponse.status);
+        
         let userGuilds = [];
+        if (userGuildsResponse.ok) {
+            userGuilds = await userGuildsResponse.json();
+            console.log('✅ Серверов пользователя:', userGuilds.length);
+        } else {
+            console.error('❌ Ошибка /api/user-guilds:', userGuildsResponse.status);
+        }
+        
+        // 3. Получаем сервера бота
+        console.log('📡 Запрос /api/bot-guilds...');
         let botGuildIds = new Set();
         
         try {
-            const controller1 = new AbortController();
-            const timeout1 = setTimeout(() => controller1.abort(), 8000);
-            
-            const userGuildsResponse = await fetch('/api/user-guilds', { 
-                credentials: 'include',
-                signal: controller1.signal
-            });
-            clearTimeout(timeout1);
-            
-            if (userGuildsResponse.ok) {
-                userGuilds = await userGuildsResponse.json();
-            }
-        } catch (e) {
-            console.error('Ошибка загрузки серверов пользователя:', e);
-        }
-        
-        // Получаем сервера бота с таймаутом
-        try {
-            const controller2 = new AbortController();
-            const timeout2 = setTimeout(() => controller2.abort(), 8000);
-            
-            const botGuildsResponse = await fetch('/api/bot-guilds', { 
-                credentials: 'include',
-                signal: controller2.signal
-            });
-            clearTimeout(timeout2);
+            const botGuildsResponse = await fetch('/api/bot-guilds', { credentials: 'include' });
+            console.log('📡 /api/bot-guilds статус:', botGuildsResponse.status);
             
             if (botGuildsResponse.ok) {
                 const botGuilds = await botGuildsResponse.json();
                 botGuildIds = new Set(botGuilds.map(g => g.id));
-                console.log('🔍 Бот на серверах:', botGuildIds);
+                console.log('✅ Бот на серверах:', botGuildIds.size);
+            } else {
+                console.error('❌ Ошибка /api/bot-guilds:', botGuildsResponse.status);
             }
         } catch (e) {
-            console.error('Ошибка загрузки серверов бота:', e);
+            console.error('❌ Ошибка запроса /api/bot-guilds:', e);
         }
         
-        // Фильтруем сервера: только где есть права администратора (0x8)
+        // 4. Фильтруем сервера с правами
         const adminGuilds = userGuilds.filter(g => (g.permissions & 0x8) === 0x8);
+        console.log('✅ Серверов с правами:', adminGuilds.length);
         
         if (adminGuilds.length === 0) {
             container.innerHTML = `
@@ -505,7 +479,8 @@ async function loadServers() {
             return;
         }
         
-        // Отображаем сервера
+        // 5. Отображаем сервера
+        console.log('🖥️ Отображение серверов...');
         container.innerHTML = adminGuilds.map(guild => {
             const hasBot = botGuildIds.has(guild.id);
             const memberCount = guild.approximate_member_count || 0;
@@ -536,18 +511,30 @@ async function loadServers() {
             `;
         }).join('');
         
+        console.log('✅ Готово!');
+        
     } catch (error) {
-        console.error('Ошибка загрузки серверов:', error);
+        console.error('❌ КРИТИЧЕСКАЯ ОШИБКА:', error);
         container.innerHTML = `
             <div class="empty-state" style="grid-column: 1/-1;">
                 <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
                 <h3>Ошибка загрузки</h3>
                 <p>${error.message || 'Неизвестная ошибка'}</p>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Проверьте консоль (F12) для подробностей</p>
                 <button class="btn-primary" style="margin-top: 16px;" onclick="location.reload()">
                     <i class="fas fa-sync"></i> Попробовать снова
                 </button>
             </div>
         `;
+    }
+}
+
+async function inviteToServer(guildId) {
+    try {
+        const data = await apiFetch('/api/invite-url');
+        window.open(data.url, '_blank');
+    } catch (error) {
+        showToast('Ошибка получения ссылки', 'error');
     }
 }
 

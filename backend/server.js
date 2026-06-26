@@ -130,24 +130,23 @@ app.get('/api/guilds', async (req, res) => {
 });
 
 // ============================================
-// ПОЛУЧЕНИЕ СЕРВЕРОВ ПОЛЬЗОВАТЕЛЯ
+// ЭНДПОИНТЫ ДЛЯ СЕРВЕРОВ
 // ============================================
 
+// Все сервера пользователя (из Discord)
 app.get('/api/user-guilds', isAuthenticated, (req, res) => {
     try {
         const guilds = req.user.guilds || [];
         const adminGuilds = guilds.filter(g => (g.permissions & 0x8) === 0x8);
+        console.log(`✅ /api/user-guilds: ${adminGuilds.length} серверов`);
         res.json(adminGuilds);
     } catch (error) {
-        console.error('Ошибка /api/user-guilds:', error);
+        console.error('❌ /api/user-guilds ошибка:', error);
         res.json([]);
     }
 });
 
-// ============================================
-// ПОЛУЧЕНИЕ СЕРВЕРОВ БОТА (С ТАЙМАУТОМ)
-// ============================================
-
+// Сервера, где есть бот
 app.get('/api/bot-guilds', isAuthenticated, async (req, res) => {
     try {
         if (!BOT_TOKEN) {
@@ -157,17 +156,12 @@ app.get('/api/bot-guilds', isAuthenticated, async (req, res) => {
         
         console.log('🔍 Запрос к Discord API для получения серверов бота...');
         
-        // Таймаут для запроса к Discord
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-        
         const response = await axios.get('https://discord.com/api/v10/users/@me/guilds', {
             headers: {
                 'Authorization': `Bot ${BOT_TOKEN}`
             },
             timeout: 10000
         });
-        clearTimeout(timeout);
         
         console.log(`✅ Бот на ${response.data.length} серверах`);
         res.json(response.data);
