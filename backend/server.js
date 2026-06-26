@@ -102,6 +102,65 @@ app.get('/api/invite-url', (req, res) => {
     res.json({ url });
 });
 
+// ===== ПОЛУЧЕНИЕ ИНФОРМАЦИИ О СЕРВЕРЕ =====
+app.get('/api/guilds/:guildId', isAuthenticated, async (req, res) => {
+    try {
+        const { guildId } = req.params;
+        
+        if (!BOT_TOKEN) {
+            return res.json({ 
+                guild: { id: guildId, name: 'Тестовый сервер' },
+                members: [],
+                roles: []
+            });
+        }
+        
+        const [guildResponse, membersResponse, rolesResponse] = await Promise.all([
+            axios.get(`https://discord.com/api/v10/guilds/${guildId}`, {
+                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
+            }),
+            axios.get(`https://discord.com/api/v10/guilds/${guildId}/members?limit=1000`, {
+                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
+            }),
+            axios.get(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
+                headers: { 'Authorization': `Bot ${BOT_TOKEN}` }
+            })
+        ]);
+        
+        const members = membersResponse.data
+            .filter(m => !m.user.bot)
+            .map(m => ({
+                id: m.user.id,
+                username: m.user.username,
+                display_name: m.nick || m.user.username,
+                avatar: m.user.avatar 
+                    ? `https://cdn.discordapp.com/avatars/${m.user.id}/${m.user.avatar}.png` 
+                    : null
+            }));
+        
+        const roles = rolesResponse.data
+            .filter(r => r.name !== '@everyone')
+            .map(r => ({
+                id: r.id,
+                name: r.name,
+                color: r.color
+            }));
+        
+        res.json({
+            guild: guildResponse.data,
+            members: members,
+            roles: roles
+        });
+    } catch (error) {
+        console.error('Ошибка получения информации о сервере:', error.message);
+        res.json({ 
+            guild: { id: req.params.guildId, name: 'Сервер' },
+            members: [],
+            roles: []
+        });
+    }
+});
+
 // ============================================
 // АВТОРИЗАЦИЯ
 // ============================================
